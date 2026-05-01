@@ -29,7 +29,8 @@ revamp-portfolio/               ← repo root
 │   └── types/                  ← shared TypeScript types (Payload generated types)
 ├── .github/
 │   └── workflows/
-│       └── deploy-web.yml      ← GitHub Actions: deploy web to Cloudflare Pages
+│       ├── ci.yml              ← lint + typecheck (web + cms)
+│       └── build-cms.yml       ← build & push CMS image to Oracle OCIR on cms/** changes
 ├── turbo.json                  ← Turborepo pipeline config
 ├── pnpm-workspace.yaml         ← pnpm workspace definition
 └── package.json                ← root package.json (scripts only)
@@ -199,28 +200,98 @@ PAYLOAD_PUBLIC_SERVER_URL=https://cms.yourdomain.com
 
 ---
 
-## Phase 5 — k8s Deployment (Homelab — configure later)
+## Phase 5 — CMS CI/CD: GitHub Actions → Oracle OCIR → k8s Homelab
 
 ### 5.1 Docker Image for CMS
 - `apps/cms/Dockerfile` — multi-stage build (Node.js)
-- Image pushed to private registry (Gitea / GHCR)
+- Image pushed to **Oracle Cloud Infrastructure Container Registry (OCIR)**
 
-### 5.2 k8s Manifests (to be created later)
-```
-k8s/
-├── namespace.yaml
-├── cms-deployment.yaml
-├── cms-service.yaml
-├── cms-ingress.yaml           ← expose via domain with TLS
-├── postgres-deployment.yaml   ← or use existing homelab Postgres
-└── cms-secret.yaml            ← env secrets
+### 5.2 GitHub Actions — Build & Push CMS Image
+
+File: `.github/workflows/build-cms.yml`
+
+Triggers on push to `main` when changes detected under `apps/cms/**`.
+
+```yaml
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/cms/**'
+      - '.github/workflows/build-cms.yml'
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to Oracle OCIR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.OCI_REGION }}.ocir.io
+          username: ${{ secrets.OCI_TENANCY_NAMESPACE }}/${{ secrets.OCI_USERNAME }}
+          password: ${{ secrets.OCI_AUTH_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: apps/cms
+          push: true
+          tags: |
+            ${{ secrets.OCI_REGION }}.ocir.io/${{ secrets.OCI_TENANCY_NAMESPACE }}/portfolio-cms:latest
+            ${{ secrets.OCI_REGION }}.ocir.io/${{ secrets.OCI_TENANCY_NAMESPACE }}/portfolio-cms:${{ github.sha }}
 ```
 
-### 5.3 GitHub Actions — Build & Push CMS Image (to be configured later)
-- Trigger on push to `main` (changes inside `apps/cms/**`)
-- Build Docker image
-- Push to registry
-- (Optional) Rolling restart on k8s via `kubectl rollout restart`
+**Required GitHub Secrets:**
+
+| Secret | Value |
+|--------|-------|
+| `OCI_REGION` | e.g. `ap-singapore-1` |
+| `OCI_TENANCY_NAMESPACE` | OCI tenancy object storage namespace |
+| `OCI_USERNAME` | OCI user (e.g. `oracleidentitycloudservice/user@email.com`) |
+| `OCI_AUTH_TOKEN` | OCI Auth Token (not password) — generate in OCI Console → User Settings |
+
+### 5.3 k8s Manifests (in `obelix` repo)
+
+```
+obelix/
+├── cms-payload/
+│   ├── cms-payload-namespace.yaml      ← namespace: cms-payload
+│   ├── cms-payload-secret.yaml         ← DATABASE_URI, PAYLOAD_SECRET, PAYLOAD_PUBLIC_SERVER_URL
+│   ├── ocir-pull-secret.yaml           ← docker registry secret for OCIR image pull
+│   ├── cms-payload-pvc.yaml            ← 10Gi NFS for Payload media uploads
+│   ├── cms-payload-deployment.yaml     ← scheduled on heimdall-vm (more CPU/RAM headroom)
+│   ├── cms-payload-service.yaml        ← ClusterIP :80 → :3000
+│   └── cms-payload-ingressroute.yaml   ← cms.danipras.dev (Traefik + letsencrypt)
+└── webhook-receiver/
+    ├── webhook-receiver-rbac.yaml      ← SA + Role scoped to patch cms-payload deployment only
+    ├── webhook-receiver-secret.yaml    ← WEBHOOK_SECRET for HMAC verification
+    ├── webhook-receiver-configmap.yaml ← Python HTTP server (HMAC verify → k8s PATCH API)
+    ├── webhook-receiver-deployment.yaml ← python:3.11-slim on odin-vm, 10m CPU / 64Mi RAM
+    ├── webhook-receiver-service.yaml   ← ClusterIP :80 → :9000
+    └── webhook-receiver-ingressroute.yaml ← deploy.danipras.dev/hooks (Traefik + letsencrypt)
+```
+
+Note: PostgreSQL already exists in homelab (`postgresql` namespace). No postgres manifest needed.
+
+### 5.4 CD Strategy — Webhook Receiver (via existing Cloudflare Tunnel)
+
+Since the homelab k8s API is not reachable from the internet, a lightweight **webhook receiver pod** runs inside the cluster and accepts inbound calls via the existing **Cloudflare Tunnel**. No self-hosted runner or GitOps controller needed.
+
+```
+GitHub Actions (ubuntu-latest)
+  → builds image → pushes :latest + :<sha> to Oracle OCIR
+  → POST https://deploy.danipras.dev/hooks/deploy-cms  (via Cloudflare Tunnel)
+       with X-Hub-Signature-256 HMAC header
+
+webhook-receiver pod (inside k8s, ~10m CPU / 64Mi RAM)
+  → verifies HMAC signature against WEBHOOK_SECRET
+  → PATCH k8s API: sets restartedAt annotation on cms-payload deployment
+  → rolling restart pulls new :latest image from OCIR
+```
+
+Resource overhead: ~10m CPU / 64Mi RAM (one persistent pod on `odin-vm`).
 
 ---
 
@@ -277,12 +348,25 @@ k8s/
 - [ ] Update Cloudflare dashboard env vars with real CMS URL and API token
 - [x] ✅ Validate full static build fetches all content correctly
 
-### Phase 5 — k8s (Later)
+### Phase 5 — CMS CI/CD + k8s
+
+**CI — GitHub Actions (`build-cms.yml`):**
 - [x] ✅ Write `apps/cms/Dockerfile` (multi-stage Node.js build)
-- [ ] Create k8s manifests under `k8s/`
-- [ ] Set up private container registry (GHCR or homelab)
-- [ ] Write local deploy script: build image → push → rolling restart
-- [ ] Deploy and test on homelab
+- [x] ✅ Create `.github/workflows/build-cms.yml` (build → push to Oracle OCIR → trigger webhook)
+- [ ] Add GitHub Secrets: `OCI_REGION`, `OCI_TENANCY_NAMESPACE`, `OCI_USERNAME`, `OCI_AUTH_TOKEN`, `WEBHOOK_SECRET`
+- [ ] Test: push to `main` → image appears in OCIR → webhook fires → deployment restarts
+
+**k8s Manifests (`obelix` repo):**
+
+- [x] ✅ Create `obelix/cms-payload/` manifests (namespace, secret, ocir pull secret, pvc, deployment, service, ingressroute)
+- [x] ✅ Create `obelix/webhook-receiver/` manifests (rbac, secret, configmap, deployment, service, ingressroute)
+- [ ] Fill in `cms-payload-secret.yaml` with real base64 values and apply
+- [ ] Generate `ocir-pull-secret.yaml` via `kubectl create secret docker-registry` and apply
+- [ ] Fill in `webhook-receiver-secret.yaml` with generated `WEBHOOK_SECRET` and apply
+- [ ] Add `deploy.danipras.dev` route to Cloudflare Tunnel config
+- [ ] Apply all manifests: `kubectl apply -f cms-payload/ && kubectl apply -f webhook-receiver/`
+- [ ] Verify CMS is live at `cms.danipras.dev`
+- [ ] Do end-to-end test: push to `main` → image built → webhook fires → pod restarts with new image
 
 ---
 
