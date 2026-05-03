@@ -341,14 +341,14 @@ Resource overhead: ~10m CPU / 64Mi RAM (one persistent pod on `odin-vm`).
 
 ### Phase 3 — CMS Setup
 - [x] ✅ Initialize `apps/cms` with Payload v3 (manually scaffolded; `create-payload-app` had Node.js compatibility issues)
-- [ ] Swap PostgreSQL adapter for MongoDB: replace `@payloadcms/db-postgres` with `@payloadcms/db-mongodb` in `apps/cms/package.json`
-- [ ] Update `payload.config.ts` to use `mongooseAdapter` from `@payloadcms/db-mongodb`
-- [ ] Add Cloudflare R2 upload adapter: install `@payloadcms/storage-s3` and configure in `payload.config.ts`
+- [x] ✅ Swap PostgreSQL adapter for MongoDB: replaced `@payloadcms/db-postgres` with `@payloadcms/db-mongodb` in `apps/cms/package.json`
+- [x] ✅ Update `payload.config.ts` to use `mongooseAdapter` from `@payloadcms/db-mongodb`
+- [x] ✅ Add Cloudflare R2 upload adapter: installed `@payloadcms/storage-s3` and configured in `payload.config.ts`
 - [x] ✅ Define all collections (`Profile`, `Projects`, `Experiences`, `Skills`) — plus `Users`, `Media`, `Educations`, `Certifications`
 - [x] ✅ Set CORS to allow Cloudflare Pages domain (uses `PAYLOAD_PUBLIC_SERVER_URL` env var)
-- [ ] Remove PostgreSQL from `docker-compose.yml` (no local DB needed — Atlas used directly in local dev too)
-- [ ] Update `.env.example` with MongoDB Atlas URI and R2 env vars
-- [ ] Test local CMS runs at port 3001 with `pnpm dev`
+- [x] ✅ Remove PostgreSQL from `docker-compose.yml` (no local DB needed — Atlas used directly in local dev too)
+- [x] ✅ Update `.env.example` with MongoDB Atlas URI and R2 env vars
+- [x] ✅ Test local CMS runs at port 3001 with `pnpm dev`
 
 ### Phase 4 — Web ↔ CMS Integration
 - [x] ✅ Import Payload types directly from `@portfolio/cms` in `apps/web` — *adapted: created `packages/types` workspace instead (web app is JS)*
