@@ -4,6 +4,7 @@ export const Educations: CollectionConfig = {
   slug: 'educations',
   admin: {
     useAsTitle: 'school',
+    group: 'Portfolio Web',
   },
   fields: [
     {

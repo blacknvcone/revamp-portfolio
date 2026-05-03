@@ -4,6 +4,7 @@ export const Experiences: CollectionConfig = {
   slug: 'experiences',
   admin: {
     useAsTitle: 'company',
+    group: 'Portfolio Web',
   },
   fields: [
     {

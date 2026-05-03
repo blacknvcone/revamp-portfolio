@@ -9,7 +9,7 @@ Refactor the existing Next.js portfolio into a **monorepo** with two apps:
 | `apps/web` | Next.js portfolio (existing) | Cloudflare Pages (static) via GitHub Actions |
 | `apps/cms` | Payload CMS | k8s homelab (Docker/k8s) |
 
-**Shared infrastructure:** PostgreSQL (managed in homelab, used by Payload CMS)
+**Shared infrastructure:** MongoDB Atlas (cloud-hosted, used by Payload CMS)
 
 ---
 
@@ -176,17 +176,24 @@ apps/cms/
 | `icon` | upload | Icon or SVG |
 
 ### 3.3 Payload Config
-- **Database:** PostgreSQL via `@payloadcms/db-postgres`
+- **Database:** MongoDB via `@payloadcms/db-mongodb`
 - **Auth:** Default Payload admin auth (email/password)
-- **Media uploads:** Local disk (PVC on k8s) or S3-compatible (optional, configurable)
+- **Media uploads:** Cloudflare R2 via `@payloadcms/storage-s3` (S3-compatible adapter)
 - **CORS:** Allow origin of Cloudflare Pages domain
 - **API:** REST enabled (used by web at build time), GraphQL optional
 
 ### 3.4 Environment Variables (cms)
 ```
-DATABASE_URI=postgresql://user:password@postgres:5432/portfolio_cms
+DATABASE_URI=mongodb+srv://user:password@cluster.mongodb.net/portfolio_cms
 PAYLOAD_SECRET=<random-secret>
 PAYLOAD_PUBLIC_SERVER_URL=https://cms.yourdomain.com
+
+# Cloudflare R2 (media uploads)
+S3_BUCKET=<r2-bucket-name>
+S3_ACCESS_KEY_ID=<r2-access-key-id>
+S3_SECRET_ACCESS_KEY=<r2-secret-access-key>
+S3_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
+S3_PUBLIC_URL=https://<r2-public-domain-or-custom-domain>
 ```
 
 ---
@@ -258,9 +265,8 @@ jobs:
 obelix/
 ├── cms-payload/
 │   ├── cms-payload-namespace.yaml      ← namespace: cms-payload
-│   ├── cms-payload-secret.yaml         ← DATABASE_URI, PAYLOAD_SECRET, PAYLOAD_PUBLIC_SERVER_URL
+│   ├── cms-payload-secret.yaml         ← DATABASE_URI, PAYLOAD_SECRET, PAYLOAD_PUBLIC_SERVER_URL, S3_* (R2 credentials)
 │   ├── ocir-pull-secret.yaml           ← docker registry secret for OCIR image pull
-│   ├── cms-payload-pvc.yaml            ← 10Gi NFS for Payload media uploads
 │   ├── cms-payload-deployment.yaml     ← scheduled on heimdall-vm (more CPU/RAM headroom)
 │   ├── cms-payload-service.yaml        ← ClusterIP :80 → :3000
 │   └── cms-payload-ingressroute.yaml   ← cms.danipras.dev (Traefik + letsencrypt)
@@ -273,7 +279,7 @@ obelix/
     └── webhook-receiver-ingressroute.yaml ← deploy.danipras.dev/hooks (Traefik + letsencrypt)
 ```
 
-Note: PostgreSQL already exists in homelab (`postgresql` namespace). No postgres manifest needed.
+Note: MongoDB Atlas is an external cloud service — no k8s manifest needed. Only the `DATABASE_URI` (Atlas connection string) goes into `cms-payload-secret.yaml`.
 
 ### 5.4 CD Strategy — Webhook Receiver (via existing Cloudflare Tunnel)
 
@@ -335,11 +341,14 @@ Resource overhead: ~10m CPU / 64Mi RAM (one persistent pod on `odin-vm`).
 
 ### Phase 3 — CMS Setup
 - [x] ✅ Initialize `apps/cms` with Payload v3 (manually scaffolded; `create-payload-app` had Node.js compatibility issues)
-- [x] ✅ Configure PostgreSQL adapter (`@payloadcms/db-postgres`)
+- [ ] Swap PostgreSQL adapter for MongoDB: replace `@payloadcms/db-postgres` with `@payloadcms/db-mongodb` in `apps/cms/package.json`
+- [ ] Update `payload.config.ts` to use `mongooseAdapter` from `@payloadcms/db-mongodb`
+- [ ] Add Cloudflare R2 upload adapter: install `@payloadcms/storage-s3` and configure in `payload.config.ts`
 - [x] ✅ Define all collections (`Profile`, `Projects`, `Experiences`, `Skills`) — plus `Users`, `Media`, `Educations`, `Certifications`
 - [x] ✅ Set CORS to allow Cloudflare Pages domain (uses `PAYLOAD_PUBLIC_SERVER_URL` env var)
-- [x] ✅ Set up local `docker-compose.yml` for Postgres dev database
-- [x] ✅ Test local CMS runs at port 3001 with `pnpm dev`
+- [ ] Remove PostgreSQL from `docker-compose.yml` (no local DB needed — Atlas used directly in local dev too)
+- [ ] Update `.env.example` with MongoDB Atlas URI and R2 env vars
+- [ ] Test local CMS runs at port 3001 with `pnpm dev`
 
 ### Phase 4 — Web ↔ CMS Integration
 - [x] ✅ Import Payload types directly from `@portfolio/cms` in `apps/web` — *adapted: created `packages/types` workspace instead (web app is JS)*
@@ -358,9 +367,9 @@ Resource overhead: ~10m CPU / 64Mi RAM (one persistent pod on `odin-vm`).
 
 **k8s Manifests (`obelix` repo):**
 
-- [x] ✅ Create `obelix/cms-payload/` manifests (namespace, secret, ocir pull secret, pvc, deployment, service, ingressroute)
+- [ ] Create `obelix/cms-payload/` manifests (namespace, secret, ocir pull secret, deployment, service, ingressroute) — remove PVC (no local media storage; R2 used instead)
 - [x] ✅ Create `obelix/webhook-receiver/` manifests (rbac, secret, configmap, deployment, service, ingressroute)
-- [ ] Fill in `cms-payload-secret.yaml` with real base64 values and apply
+- [ ] Fill in `cms-payload-secret.yaml` with real base64 values (MongoDB URI + R2 credentials) and apply
 - [ ] Generate `ocir-pull-secret.yaml` via `kubectl create secret docker-registry` and apply
 - [ ] Fill in `webhook-receiver-secret.yaml` with generated `WEBHOOK_SECRET` and apply
 - [ ] Add `deploy.danipras.dev` route to Cloudflare Tunnel config
@@ -375,12 +384,6 @@ Resource overhead: ~10m CPU / 64Mi RAM (one persistent pod on `odin-vm`).
 ```bash
 # Start everything locally
 pnpm install
-docker compose up -d          # Postgres for local CMS dev
+# No docker compose needed — MongoDB Atlas is used directly (set DATABASE_URI in apps/cms/.env)
 pnpm dev                      # runs web (port 3000) + cms (port 3001) via Turbo
-```
-
-```
-docker-compose.yml (root)
-├── postgres   → port 5432
-└── (cms runs via pnpm, not Docker, in local dev)
 ```

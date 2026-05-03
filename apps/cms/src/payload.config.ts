@@ -1,4 +1,5 @@
-import { postgresAdapter } from '@payloadcms/db-postgres';
+import { mongooseAdapter } from '@payloadcms/db-mongodb';
+import { s3Storage } from '@payloadcms/storage-s3';
 import { lexicalEditor } from '@payloadcms/richtext-lexical';
 import { buildConfig } from 'payload';
 import sharp from 'sharp';
@@ -28,11 +29,28 @@ export default buildConfig({
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
-  db: postgresAdapter({
-    pool: {
-      connectionString: process.env.DATABASE_URI || 'postgresql://postgres:postgres@localhost:5432/portfolio_cms',
-    },
+  db: mongooseAdapter({
+    url: process.env.DATABASE_URI || 'mongodb://localhost:27017/portfolio_cms',
   }),
+  plugins: [
+    s3Storage({
+      collections: {
+        media: {
+          prefix: 'media',
+        },
+      },
+      bucket: process.env.S3_BUCKET || '',
+      config: {
+        credentials: {
+          accessKeyId: process.env.S3_ACCESS_KEY_ID || '',
+          secretAccessKey: process.env.S3_SECRET_ACCESS_KEY || '',
+        },
+        endpoint: process.env.S3_ENDPOINT || '',
+        region: 'auto',
+        forcePathStyle: true,
+      },
+    }),
+  ],
   sharp,
   cors: [process.env.PAYLOAD_PUBLIC_SERVER_URL || 'http://localhost:3001'].filter(Boolean),
 });

@@ -5,8 +5,14 @@
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
+    "dev:web": "turbo dev --filter=@portfolio/web",
+    "dev:cms": "turbo dev --filter=@portfolio/cms",
     "lint": "turbo lint",
-    "typecheck": "turbo typecheck"
+    "typecheck": "turbo typecheck",
+    "generate:types": "turbo generate:types",
+    "generate:types:cms": "pnpm --filter @portfolio/cms generate:types",
+    "generate:importmap:cms": "pnpm --filter @portfolio/cms generate:importmap",
+    "payload:cms": "pnpm --filter @portfolio/cms payload"
   },
   "devDependencies": {
     "turbo": "^2.5.2"

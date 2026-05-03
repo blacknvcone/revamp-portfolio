@@ -2,6 +2,9 @@ import type { GlobalConfig } from 'payload';
 
 export const Profile: GlobalConfig = {
   slug: 'profile',
+  admin: {
+    group: 'Portfolio Web',
+  },
   fields: [
     {
       name: 'name',

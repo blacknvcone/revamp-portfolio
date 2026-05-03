@@ -4,6 +4,7 @@ export const Skills: CollectionConfig = {
   slug: 'skills',
   admin: {
     useAsTitle: 'name',
+    group: 'Portfolio Web',
   },
   fields: [
     {
