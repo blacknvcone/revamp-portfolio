@@ -207,11 +207,11 @@ S3_PUBLIC_URL=https://<r2-public-domain-or-custom-domain>
 
 ---
 
-## Phase 5 — CMS CI/CD: GitHub Actions → Oracle OCIR → k8s Homelab
+## Phase 5 — CMS CI/CD: GitHub Actions → GHCR → k3s Homelab
 
 ### 5.1 Docker Image for CMS
 - `apps/cms/Dockerfile` — multi-stage build (Node.js)
-- Image pushed to **Oracle Cloud Infrastructure Container Registry (OCIR)**
+- Image pushed to **GitHub Container Registry (GHCR)** — free, unlimited public repos, no extra credentials needed for push
 
 ### 5.2 GitHub Actions — Build & Push CMS Image
 
@@ -220,84 +220,163 @@ File: `.github/workflows/build-cms.yml`
 Triggers on push to `main` when changes detected under `apps/cms/**`.
 
 ```yaml
+name: Build & Deploy CMS
+
 on:
   push:
     branches: [main]
     paths:
       - 'apps/cms/**'
       - '.github/workflows/build-cms.yml'
+      - 'packages/types/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'turbo.json'
+      - 'pnpm-workspace.yaml'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/cms-payload
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-tag: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Log in to Oracle OCIR
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
-          registry: ${{ secrets.OCI_REGION }}.ocir.io
-          username: ${{ secrets.OCI_TENANCY_NAMESPACE }}/${{ secrets.OCI_USERNAME }}
-          password: ${{ secrets.OCI_AUTH_TOKEN }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=,suffix=
+            type=raw,value=latest
 
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          context: apps/cms
+          context: .
+          file: apps/cms/Dockerfile
           push: true
-          tags: |
-            ${{ secrets.OCI_REGION }}.ocir.io/${{ secrets.OCI_TENANCY_NAMESPACE }}/portfolio-cms:latest
-            ${{ secrets.OCI_REGION }}.ocir.io/${{ secrets.OCI_TENANCY_NAMESPACE }}/portfolio-cms:${{ github.sha }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger rolling restart via webhook
+        run: |
+          PAYLOAD='{"ref":"${{ github.ref }}","sha":"${{ github.sha }}"}'
+          SIG="sha256=$(echo -n "$PAYLOAD" | openssl dgst -sha256 -hmac "${{ secrets.WEBHOOK_SECRET }}" | awk '{print $2}')"
+          curl -f -X POST https://deploy.danipras.dev/hooks/deploy-cms \
+            -H "Content-Type: application/json" \
+            -H "X-Hub-Signature-256: $SIG" \
+            -d "$PAYLOAD"
 ```
 
-**Required GitHub Secrets:**
+**No registry secrets needed for push** — `GITHUB_TOKEN` is automatically injected by GitHub Actions and has `packages: write` permission when `permissions.packages: write` is set.
 
-| Secret | Value |
-|--------|-------|
-| `OCI_REGION` | e.g. `ap-singapore-1` |
-| `OCI_TENANCY_NAMESPACE` | OCI tenancy object storage namespace |
-| `OCI_USERNAME` | OCI user (e.g. `oracleidentitycloudservice/user@email.com`) |
-| `OCI_AUTH_TOKEN` | OCI Auth Token (not password) — generate in OCI Console → User Settings |
+### 5.3 k3s Manifests
 
-### 5.3 k8s Manifests (in `obelix` repo)
-
+**CMS app manifests** (`apps/cms/infra/` in this repo):
 ```
-obelix/
-├── cms-payload/
-│   ├── cms-payload-namespace.yaml      ← namespace: cms-payload
-│   ├── cms-payload-secret.yaml         ← DATABASE_URI, PAYLOAD_SECRET, PAYLOAD_PUBLIC_SERVER_URL, S3_* (R2 credentials)
-│   ├── ocir-pull-secret.yaml           ← docker registry secret for OCIR image pull
-│   ├── cms-payload-deployment.yaml     ← scheduled on heimdall-vm (more CPU/RAM headroom)
-│   ├── cms-payload-service.yaml        ← ClusterIP :80 → :3000
-│   └── cms-payload-ingressroute.yaml   ← cms.danipras.dev (Traefik + letsencrypt)
-└── webhook-receiver/
-    ├── webhook-receiver-rbac.yaml      ← SA + Role scoped to patch cms-payload deployment only
-    ├── webhook-receiver-secret.yaml    ← WEBHOOK_SECRET for HMAC verification
-    ├── webhook-receiver-configmap.yaml ← Python HTTP server (HMAC verify → k8s PATCH API)
-    ├── webhook-receiver-deployment.yaml ← python:3.11-slim on odin-vm, 10m CPU / 64Mi RAM
-    ├── webhook-receiver-service.yaml   ← ClusterIP :80 → :9000
-    └── webhook-receiver-ingressroute.yaml ← deploy.danipras.dev/hooks (Traefik + letsencrypt)
+apps/cms/infra/
+├── namespace.yaml            ← namespace: cms-payload
+├── secret.yaml               ← DATABASE_URI, PAYLOAD_SECRET, PAYLOAD_PUBLIC_SERVER_URL, S3_* (R2 credentials)
+├── ghcr-pull-secret.yaml     ← docker-registry secret for GHCR image pull (uses GitHub PAT with read:packages)
+├── deployment.yaml           ← uses imagePullSecrets + ghcr.io/blacknvcone/revamp-portfolio/cms-payload:latest
+├── service.yaml              ← ClusterIP :80 → :3001
+└── ingressroute.yaml         ← cms.danipras.dev (Traefik + letsencrypt)
 ```
 
-Note: MongoDB Atlas is an external cloud service — no k8s manifest needed. Only the `DATABASE_URI` (Atlas connection string) goes into `cms-payload-secret.yaml`.
+**Shared webhook receiver** (`obelix/webhook-receiver/` in the obelix repo):
+```
+obelix/webhook-receiver/
+├── namespace.yaml            ← namespace: github-webhook (general-purpose, shared by all apps)
+├── rbac.yaml                 ← SA + ClusterRole for patching deployments in ANY namespace
+├── secret.yaml               ← WEBHOOK_SECRET for HMAC verification
+├── configmap.yaml            ← Python HTTP server (HMAC verify → k8s PATCH API)
+├── deployment.yaml           ← python:3.11-slim on odin-vm, 10m CPU / 64Mi RAM
+├── service.yaml              ← ClusterIP :80 → :9000
+├── middleware.yaml           ← Traefik rate-limit middleware
+└── ingressroute.yaml         ← deploy.danipras.dev/hooks (Traefik + letsencrypt + rate limit)
+```
 
-### 5.4 CD Strategy — Webhook Receiver (via existing Cloudflare Tunnel)
+Note: MongoDB Atlas is an external cloud service — no k8s manifest needed. Only the `DATABASE_URI` (Atlas connection string) goes into `secret.yaml`.
 
-Since the homelab k8s API is not reachable from the internet, a lightweight **webhook receiver pod** runs inside the cluster and accepts inbound calls via the existing **Cloudflare Tunnel**. No self-hosted runner or GitOps controller needed.
+### 5.4 CD Strategy — Generic Webhook Receiver (via existing Cloudflare Tunnel)
+
+Since the homelab k3s API is not reachable from the internet, a lightweight **webhook receiver pod** runs inside the cluster (in the shared `github-webhook` namespace) and accepts inbound calls via the existing **Cloudflare Tunnel**. It is **generic** — one receiver handles rolling restarts for any app by reading `namespace` and `deployment` from the JSON payload.
 
 ```
 GitHub Actions (ubuntu-latest)
-  → builds image → pushes :latest + :<sha> to Oracle OCIR
-  → POST https://deploy.danipras.dev/hooks/deploy-cms  (via Cloudflare Tunnel)
-       with X-Hub-Signature-256 HMAC header
+  → builds image → pushes :latest + :<sha> to GHCR
+  → POST https://deploy.danipras.dev/hooks/deploy  (via Cloudflare Tunnel)
+       Payload: {"ref":"...","sha":"...","namespace":"cms-payload","deployment":"cms-payload"}
+       Header:  X-Hub-Signature-256 HMAC
 
-webhook-receiver pod (inside k8s, ~10m CPU / 64Mi RAM)
+webhook-receiver pod (inside k3s, ~10m CPU / 64Mi RAM)
   → verifies HMAC signature against WEBHOOK_SECRET
-  → PATCH k8s API: sets restartedAt annotation on cms-payload deployment
-  → rolling restart pulls new :latest image from OCIR
+  → reads namespace + deployment from JSON payload
+  → PATCH k8s API: sets restartedAt annotation on the target deployment
+  → rolling restart pulls new :latest image from GHCR
 ```
 
 Resource overhead: ~10m CPU / 64Mi RAM (one persistent pod on `odin-vm`).
+
+**Required GitHub Secrets:**
+
+| Secret | Value | How to get |
+|--------|-------|------------|
+| `WEBHOOK_SECRET` | Random string (e.g. `openssl rand -hex 32`) | Generate once, share with `webhook-receiver-secret.yaml` |
+
+**Required k3s Setup:**
+
+1. **Create GitHub PAT for image pull** (Settings → Developer settings → Personal access tokens → Tokens (classic))
+   - Scope: `read:packages`
+   - Save the token value
+
+2. **Create GHCR pull secret in k3s:**
+   ```bash
+   kubectl create secret docker-registry ghcr-pull-secret \
+     --namespace=cms-payload \
+     --docker-server=ghcr.io \
+     --docker-username=blacknvcone \
+     --docker-password=<YOUR_GITHUB_PAT> \
+     --docker-email=<your-email>
+   ```
+
+3. **Reference `imagePullSecrets` in the CMS Deployment:**
+   ```yaml
+   spec:
+     template:
+       spec:
+         imagePullSecrets:
+           - name: ghcr-pull-secret
+         containers:
+           - name: cms-payload
+             image: ghcr.io/blacknvcone/revamp-portfolio/cms-payload:latest
+             imagePullPolicy: Always
+   ```
 
 ---
 
@@ -354,27 +433,34 @@ Resource overhead: ~10m CPU / 64Mi RAM (one persistent pod on `odin-vm`).
 - [x] ✅ Import Payload types directly from `@portfolio/cms` in `apps/web` — *adapted: created `packages/types` workspace instead (web app is JS)*
 - [x] ✅ Replace hardcoded data in `apps/web` pages with Payload REST API `fetch()` calls
 - [x] ✅ Add `generateStaticParams()` to all dynamic routes (`/projects/[slug]`)
-- [ ] Update Cloudflare dashboard env vars with real CMS URL and API token
+- [x] Update Cloudflare dashboard env vars with real CMS URL and API token
 - [x] ✅ Validate full static build fetches all content correctly
 
-### Phase 5 — CMS CI/CD + k8s
+### Phase 5 — CMS CI/CD + k3s (GHCR)
 
 **CI — GitHub Actions (`build-cms.yml`):**
 - [x] ✅ Write `apps/cms/Dockerfile` (multi-stage Node.js build)
-- [x] ✅ Create `.github/workflows/build-cms.yml` (build → push to Oracle OCIR → trigger webhook)
-- [ ] Add GitHub Secrets: `OCI_REGION`, `OCI_TENANCY_NAMESPACE`, `OCI_USERNAME`, `OCI_AUTH_TOKEN`, `WEBHOOK_SECRET`
-- [ ] Test: push to `main` → image appears in OCIR → webhook fires → deployment restarts
+- [x] ✅ Create `.github/workflows/build-cms.yml` (build → push to GHCR → trigger webhook)
+- [x] ✅ Update `build-cms.yml`: switch from OCIR to GHCR (`GITHUB_TOKEN` auth, `ghcr.io/.../cms-payload` image)
+- [x] ✅ Update deploy payload to include `namespace` + `deployment` for generic webhook receiver
+- [ ] Add GitHub Secret: `WEBHOOK_SECRET`
+- [ ] Test: push to `main` → image appears in GHCR Packages → webhook fires → deployment restarts
 
-**k8s Manifests (`obelix` repo):**
-
-- [ ] Create `obelix/cms-payload/` manifests (namespace, secret, ocir pull secret, deployment, service, ingressroute) — remove PVC (no local media storage; R2 used instead)
-- [x] ✅ Create `obelix/webhook-receiver/` manifests (rbac, secret, configmap, deployment, service, ingressroute)
-- [ ] Fill in `cms-payload-secret.yaml` with real base64 values (MongoDB URI + R2 credentials) and apply
-- [ ] Generate `ocir-pull-secret.yaml` via `kubectl create secret docker-registry` and apply
-- [ ] Fill in `webhook-receiver-secret.yaml` with generated `WEBHOOK_SECRET` and apply
-- [ ] Add `deploy.danipras.dev` route to Cloudflare Tunnel config
-- [ ] Apply all manifests: `kubectl apply -f cms-payload/ && kubectl apply -f webhook-receiver/`
+**CMS k3s Manifests (`apps/cms/infra/`):**
+- [x] ✅ Create `apps/cms/infra/` manifests (namespace, secret, ghcr-pull-secret, deployment, service, ingressroute) — no PVC (R2 used instead)
+- [ ] Fill in `secret.yaml` with real base64 values (MongoDB URI + R2 credentials) and apply
+- [ ] Generate `ghcr-pull-secret.yaml` via `kubectl create secret docker-registry` (use GitHub PAT with `read:packages`) and apply
 - [ ] Verify CMS is live at `cms.danipras.dev`
+
+**Shared Webhook Receiver (`obelix/webhook-receiver/`):**
+- [x] ✅ Move webhook-receiver manifests to `obelix` repo (shared infra, not app-specific)
+- [x] ✅ Change namespace to `github-webhook` (general-purpose)
+- [x] ✅ Upgrade RBAC: Role → ClusterRole + ClusterRoleBinding (can patch deployments in any namespace)
+- [x] ✅ Update Python server to read `namespace` + `deployment` from JSON payload
+- [x] ✅ Add Traefik rate-limit middleware
+- [ ] Fill in `secret.yaml` with generated `WEBHOOK_SECRET` and apply
+- [ ] Add `deploy.danipras.dev` route to Cloudflare Tunnel config
+- [ ] Apply webhook-receiver manifests: `kubectl apply -f webhook-receiver/`
 - [ ] Do end-to-end test: push to `main` → image built → webhook fires → pod restarts with new image
 
 ---

@@ -6,10 +6,22 @@ on:
     paths:
       - 'apps/cms/**'
       - '.github/workflows/build-cms.yml'
+      - 'packages/types/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'turbo.json'
+      - 'pnpm-workspace.yaml'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/cms-payload
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     outputs:
       image-tag: ${{ github.sha }}
     steps:
@@ -18,21 +30,30 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to Oracle OCIR
+      - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
-          registry: ${{ secrets.OCI_REGION }}.ocir.io
-          username: ${{ secrets.OCI_TENANCY_NAMESPACE }}/${{ secrets.OCI_USERNAME }}
-          password: ${{ secrets.OCI_AUTH_TOKEN }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=,suffix=
+            type=raw,value=latest
 
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          context: apps/cms
+          context: .
+          file: apps/cms/Dockerfile
           push: true
-          tags: |
-            ${{ secrets.OCI_REGION }}.ocir.io/${{ secrets.OCI_TENANCY_NAMESPACE }}/cms-payload:latest
-            ${{ secrets.OCI_REGION }}.ocir.io/${{ secrets.OCI_TENANCY_NAMESPACE }}/cms-payload:${{ github.sha }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -42,9 +63,9 @@ jobs:
     steps:
       - name: Trigger rolling restart via webhook
         run: |
-          PAYLOAD='{"ref":"${{ github.ref }}","sha":"${{ github.sha }}"}'
+          PAYLOAD='{"ref":"${{ github.ref }}","sha":"${{ github.sha }}","namespace":"cms-payload","deployment":"cms-payload"}'
           SIG="sha256=$(echo -n "$PAYLOAD" | openssl dgst -sha256 -hmac "${{ secrets.WEBHOOK_SECRET }}" | awk '{print $2}')"
-          curl -f -X POST https://deploy.danipras.dev/hooks/deploy-cms \
+          curl -f -X POST https://deploy.danipras.dev/hooks/deploy \
             -H "Content-Type: application/json" \
             -H "X-Hub-Signature-256: $SIG" \
             -d "$PAYLOAD"
