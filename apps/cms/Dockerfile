@@ -37,6 +37,11 @@ ENV NODE_ENV=production
 
 RUN pnpm --filter @portfolio/cms build
 
+# Verify standalone output was generated
+RUN ls -la /app/apps/cms/.next/standalone/apps/cms/ \
+    && test -f /app/apps/cms/.next/standalone/apps/cms/server.js \
+    || (echo "ERROR: standalone/server.js not found" && exit 1)
+
 # -------------------------------
 # Runner stage
 # -------------------------------
@@ -50,8 +55,17 @@ ENV PORT=3001
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-COPY --from=builder --chown=nextjs:nodejs /app/apps/cms/.next/standalone ./
+# Copy the app directory from standalone (includes server.js, .next/, node_modules/)
+COPY --from=builder --chown=nextjs:nodejs /app/apps/cms/.next/standalone/apps/cms ./apps/cms
+
+# Copy shared .pnpm store so symlinks in apps/cms/node_modules resolve correctly
+COPY --from=builder --chown=nextjs:nodejs /app/apps/cms/.next/standalone/node_modules ./node_modules
+
+# Copy static assets (not included in standalone)
 COPY --from=builder --chown=nextjs:nodejs /app/apps/cms/.next/static ./apps/cms/.next/static
+
+# Remove any build-time .env so k8s secrets/env take precedence
+RUN rm -f /app/apps/cms/.env
 
 USER nextjs
 
