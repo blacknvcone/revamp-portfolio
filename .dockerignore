@@ -1,0 +1,49 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build outputs
+.next
+dist
+out
+build
+
+# Env files (secrets)
+.env
+.env.local
+.env.*.local
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+.dockerignore
+
+# CI/CD
+.github
+
+# Documentation
+*.md
+
+# Cache
+.turbo
+.cache
+
+# IDE
+.vscode
+.idea
+
+# OS
+.DS_Store
+
+# Other apps (not needed for CMS build)
+apps/web
+
+# Infra manifests (not needed for build)
+apps/cms/infra
+
+# Local dev files
+apps/cms/.env
+apps/cms/.env.example
