@@ -53,7 +53,6 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder --chown=nextjs:nodejs /app/apps/cms/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/cms/.next/static ./apps/cms/.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/apps/cms/public ./apps/cms/public
-COPY --from=builder --chown=nextjs:nodejs /app/apps/cms/media ./apps/cms/media
 
 USER nextjs
 
