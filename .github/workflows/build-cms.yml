@@ -2,15 +2,8 @@ name: Build & Deploy CMS
 
 on:
   push:
-    branches: [main]
-    paths:
-      - 'apps/cms/**'
-      - '.github/workflows/build-cms.yml'
-      - 'packages/types/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'turbo.json'
-      - 'pnpm-workspace.yaml'
+    tags:
+      - 'cms-v*'
 
 env:
   REGISTRY: ghcr.io

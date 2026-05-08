@@ -217,7 +217,7 @@ S3_PUBLIC_URL=https://<r2-public-domain-or-custom-domain>
 
 File: `.github/workflows/build-cms.yml`
 
-Triggers on push to `main` when changes detected under `apps/cms/**`.
+Triggers on tag push matching `cms-v*` (e.g. `git tag cms-v1.0.0 && git push origin cms-v1.0.0`).
 
 ```yaml
 name: Build & Deploy CMS
@@ -444,7 +444,7 @@ Resource overhead: ~10m CPU / 64Mi RAM (one persistent pod on `odin-vm`).
 - [x] ✅ Update `build-cms.yml`: switch from OCIR to GHCR (`GITHUB_TOKEN` auth, `ghcr.io/.../cms-payload` image)
 - [x] ✅ Update deploy payload to include `namespace` + `deployment` for generic webhook receiver
 - [ ] Add GitHub Secret: `WEBHOOK_SECRET`
-- [ ] Test: push to `main` → image appears in GHCR Packages → webhook fires → deployment restarts
+- [ ] Test: push tag `cms-v1.0.0` → image appears in GHCR Packages → webhook fires → deployment restarts
 
 **CMS k3s Manifests (`apps/cms/infra/`):**
 - [x] ✅ Create `apps/cms/infra/` manifests (namespace, secret, ghcr-pull-secret, deployment, service, ingressroute) — no PVC (R2 used instead)
@@ -461,7 +461,7 @@ Resource overhead: ~10m CPU / 64Mi RAM (one persistent pod on `odin-vm`).
 - [ ] Fill in `secret.yaml` with generated `WEBHOOK_SECRET` and apply
 - [ ] Add `deploy.danipras.dev` route to Cloudflare Tunnel config
 - [ ] Apply webhook-receiver manifests: `kubectl apply -f webhook-receiver/`
-- [ ] Do end-to-end test: push to `main` → image built → webhook fires → pod restarts with new image
+- [ ] Do end-to-end test: push tag `cms-v1.0.0` → image built → webhook fires → pod restarts with new image
 
 ---
 
