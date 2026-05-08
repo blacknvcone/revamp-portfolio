@@ -2,11 +2,8 @@ name: Deploy Web to Cloudflare Pages
 
 on:
   push:
-    branches: [main]
-    paths:
-      - 'apps/web/**'
-      - 'packages/**'
-      - '.github/workflows/deploy-web.yml'
+    tags:
+      - "web-v*"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -28,7 +25,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
