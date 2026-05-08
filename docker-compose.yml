@@ -1,0 +1,4 @@
+version: '3.8'
+
+# PostgreSQL removed — MongoDB Atlas is used directly.
+# No local database services needed.

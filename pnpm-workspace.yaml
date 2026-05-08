@@ -1,0 +1,4 @@
+packages:
+  - apps/*
+  - packages/*
+onlyBuiltDependencies: sharp,esbuild,unrs-resolver

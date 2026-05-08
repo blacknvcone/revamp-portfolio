@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cms-payload-service
+  namespace: cms-payload
+  labels:
+    app: cms-payload
+spec:
+  selector:
+    app: cms-payload
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3001
+  type: ClusterIP
+  ipFamilyPolicy: SingleStack
+  ipFamilies:
+    - IPv4
