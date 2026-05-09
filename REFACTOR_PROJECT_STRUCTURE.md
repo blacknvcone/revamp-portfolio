@@ -400,6 +400,17 @@ Resource overhead: ~10m CPU / 64Mi RAM (one persistent pod on `odin-vm`).
   - Simplified Tailwind config (removed separate `.tailwind.config.js`)
 - **Build output updated** — static export in `apps/web/out/` regenerated with new content
 
+### Deploy Pipeline Setup (`web-v1.0.0` → `web-v1.0.8`)
+- **GitHub Actions deploy workflow** (`.github/workflows/deploy-web.yml`)
+  - Tag-based deploys (`web-v*`) trigger build + deploy to Cloudflare Pages
+  - Auto-creates Pages project via Cloudflare API if it doesn't exist
+  - Uses `wrangler pages deploy` (compatible with unified Workers & Pages platform)
+  - Fixed production deploys with `--branch=main` (prevents preview-only deployments)
+- **Husky pre-push hook** — local build gate blocks broken code from reaching GitHub
+- **CI workflow** (`.github/workflows/ci.yml`) — runs lint on web + cms for every push/PR
+- **Removed `apps/web/out/` from git tracking** — build output is generated fresh in CI
+- **Custom domain configured** — `danipras.dev` → `raven-portfolio.pages.dev` via Cloudflare DNS
+
 ---
 
 ## Migration Checklist
@@ -425,14 +436,10 @@ Resource overhead: ~10m CPU / 64Mi RAM (one persistent pod on `odin-vm`).
 - [x] ✅ Fix bio rendering in HeroSection and AboutSection (richText → plain text)
 
 ### Phase 2 — Cloudflare Pages Setup (one-time, dashboard)
-- [ ] Create Cloudflare Pages project
-- [ ] Connect GitHub repo
-- [ ] Set framework preset to `Next.js (Static HTML Export)`
-- [ ] Set build command: `pnpm --filter @portfolio/web build`
-- [ ] Set build output directory: `apps/web/out`
-- [ ] Set root directory: `/`
-- [ ] Add env vars in Cloudflare dashboard (`NEXT_PUBLIC_CMS_URL`, `CMS_API_SECRET`) — placeholder values until CMS is live
-- [ ] Trigger a test deploy and verify site is live
+- [x] ✅ Create Cloudflare Pages project (`raven-portfolio`)
+- [x] ✅ Disconnect Git Integration (using GitHub Actions instead of Cloudflare builds)
+- [x] ✅ Configure custom domain (`danipras.dev` → `raven-portfolio.pages.dev`)
+- [x] ✅ Verify site is live at `https://danipras.dev`
 
 ### Phase 2 — Pre-push Git Hook
 - [x] ✅ Install Husky (`pnpm add -Dw husky`)
@@ -495,8 +502,7 @@ Resource overhead: ~10m CPU / 64Mi RAM (one persistent pod on `odin-vm`).
 
 | # | Task | Phase | Status |
 |---|------|-------|--------|
-| 1 | Configure GitHub Secrets for web deploy (`NEXT_PUBLIC_CMS_URL`, `CMS_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`) | Phase 2 — GitHub Actions | ⏳ Pending |
-| 2 | Test end-to-end deploy: push tag `web-v1.0.0` → GitHub Actions builds → deploys to Cloudflare Pages | Phase 2 — Deploy | ⏳ Pending |
+| 1 | Fix CMS data fetching in GitHub Actions (build completes but all CMS API calls fail) | Phase 4 — Web ↔ CMS Integration | ⏳ Pending |
 
 ---
 
