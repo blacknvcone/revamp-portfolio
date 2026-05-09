@@ -12,9 +12,11 @@
     "generate:types": "turbo generate:types",
     "generate:types:cms": "pnpm --filter @portfolio/cms generate:types",
     "generate:importmap:cms": "pnpm --filter @portfolio/cms generate:importmap",
-    "payload:cms": "pnpm --filter @portfolio/cms payload"
+    "payload:cms": "pnpm --filter @portfolio/cms payload",
+    "prepare": "husky"
   },
   "devDependencies": {
+    "husky": "^9.1.7",
     "turbo": "^2.5.2"
   },
   "packageManager": "pnpm@10.10.0"

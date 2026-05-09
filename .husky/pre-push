@@ -1,0 +1,1 @@
+pnpm --filter @portfolio/web build

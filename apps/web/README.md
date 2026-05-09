@@ -1,36 +1,81 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# @portfolio/web
 
-## Getting Started
+Next.js portfolio frontend. Fetches content from Payload CMS at build time and exports static HTML for Cloudflare Pages.
 
-First, run the development server:
+---
+
+## Local Development
 
 ```bash
-npm run dev
+# From repo root
+pnpm dev:web
 # or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cd apps/web && pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Deploy to Cloudflare Pages
 
-## Learn More
+Deployment is handled by **GitHub Actions** (`.github/workflows/deploy-web.yml`) using the official `cloudflare/pages-action`.
 
-To learn more about Next.js, take a look at the following resources:
+### Trigger
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Push a tag matching `web-v*`:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+git tag web-v1.0.0
+git push origin web-v1.0.0
+```
 
-## Deploy on Vercel
+GitHub Actions will build the app and upload the static output to Cloudflare Pages.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Required GitHub Secrets
+
+Add these secrets in your GitHub repo:
+
+**Settings → Secrets and variables → Actions → New repository secret**
+
+| Secret | How to get it |
+|--------|---------------|
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare Dashboard → any domain overview → right sidebar **API** section |
+| `CLOUDFLARE_API_TOKEN` | Cloudflare Dashboard → **My Profile** → **API Tokens** → **Create Token** → **Custom token** → Permission: `Account` → `Cloudflare Pages` → `Edit` |
+| `NEXT_PUBLIC_CMS_URL` | Your Payload CMS public URL, e.g. `https://cms.danipras.dev` |
+| `CMS_API_KEY` | Payload CMS API key for read-only access during build |
+
+### Creating the Cloudflare API Token
+
+1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com) → click your **profile icon** (top right) → **My Profile**
+2. Go to the **API Tokens** tab → click **Create Token**
+3. Scroll down to **Custom token** → click **Get started**
+4. Fill in:
+   - **Token name:** `GitHub Actions Pages Deploy`
+   - **Permissions:**
+     - `Account` → `Cloudflare Pages` → `Edit`
+   - **Account Resources:** `Include` → your account
+5. Click **Continue to summary** → **Create Token**
+6. Copy the token and save it as the `CLOUDFLARE_API_TOKEN` secret in GitHub
+
+---
+
+## Build
+
+```bash
+# From repo root
+pnpm --filter @portfolio/web build
+```
+
+Static export is written to `apps/web/out/`.
+
+---
+
+## Tech Stack
+
+- Next.js 15 (App Router, Static Export)
+- Tailwind CSS
+- Framer Motion
+- Lucide React

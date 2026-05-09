@@ -380,6 +380,28 @@ Resource overhead: ~10m CPU / 64Mi RAM (one persistent pod on `odin-vm`).
 
 ---
 
+## Recent Changes Summary
+
+### Web App Content Revamp + CMS Integration (`95f6ae7`)
+- **Complete UI overhaul** of `apps/web` with a new single-page portfolio design
+  - Added new section components: `HeroSection`, `AboutSection`, `ProjectsSection`, `ExperienceSection`, `SkillsSection`, `ContactSection`
+  - Replaced old layout (`ProfileSidebar`, `TableOfContent`, `RootLayout`) with cleaner `Navbar` + `Footer` architecture
+  - Added reusable UI components: `SectionHeading`, `ProjectCard`, `TimelineItem`, `SkillBadge`, `GradientBlur`
+  - Removed legacy `ThemeToggle`, `LayoutContext`, and `providers.js`
+- **CMS data integration** via REST API (`apps/web/src/lib/cms.js`)
+  - All sections now fetch live data from Payload CMS at build time (`getProfile`, `getProjects`, `getExperiences`, `getSkills`, `getEducations`, `getCertifications`)
+  - Dynamic routes (`/projects/[slug]`) use `generateStaticParams()` for SSG
+  - `getProjectBySlug` and `getProjectSlugs` support project detail pages
+- **RichText rendering fix** (`apps/web/src/lib/richText.js`)
+  - Added `richTextToPlainText()` utility to convert Payload CMS Lexical richText to plain strings
+  - Applied to `HeroSection` and `AboutSection` so `profile.bio` (richText type) renders correctly instead of appearing empty
+- **Styling refresh**
+  - Updated `globals.css` with new CSS variables and dark-mode-friendly color tokens
+  - Simplified Tailwind config (removed separate `.tailwind.config.js`)
+- **Build output updated** — static export in `apps/web/out/` regenerated with new content
+
+---
+
 ## Migration Checklist
 
 ### Phase 1 — Monorepo Bootstrap
@@ -397,6 +419,10 @@ Resource overhead: ~10m CPU / 64Mi RAM (one persistent pod on `odin-vm`).
 - [x] ✅ Update `apps/web/next.config.mjs` with `output: 'export'` and `images.unoptimized: true`
 - [x] ✅ Keep hardcoded data for now (CMS not live yet) — *superseded by Phase 4*
 - [x] ✅ Test `pnpm --filter @portfolio/web build` produces `apps/web/out/` directory
+- [x] ✅ Revamp UI with section-based layout (Hero, About, Projects, Experience, Skills, Contact)
+- [x] ✅ Add reusable UI components (SectionHeading, ProjectCard, TimelineItem, SkillBadge, GradientBlur)
+- [x] ✅ Implement `richTextToPlainText` utility for Payload CMS richText fields
+- [x] ✅ Fix bio rendering in HeroSection and AboutSection (richText → plain text)
 
 ### Phase 2 — Cloudflare Pages Setup (one-time, dashboard)
 - [ ] Create Cloudflare Pages project
@@ -409,14 +435,14 @@ Resource overhead: ~10m CPU / 64Mi RAM (one persistent pod on `odin-vm`).
 - [ ] Trigger a test deploy and verify site is live
 
 ### Phase 2 — Pre-push Git Hook
-- [ ] Install Husky (`pnpm add -Dw husky`)
-- [ ] Initialize Husky (`pnpm exec husky init`)
-- [ ] Create `.husky/pre-push` with `pnpm --filter @portfolio/web build`
-- [ ] Test that a broken build blocks the push
+- [x] ✅ Install Husky (`pnpm add -Dw husky`)
+- [x] ✅ Initialize Husky (`pnpm exec husky init`)
+- [x] ✅ Create `.husky/pre-push` with `pnpm --filter @portfolio/web build`
+- [x] ✅ Test that a broken build blocks the push
 
 ### Phase 2 — GitHub Actions (lint/typecheck only)
-- [ ] Create `.github/workflows/ci.yml` (lint + typecheck, no build/deploy)
-- [ ] Verify it runs in under 1 minute
+- [x] ✅ Create `.github/workflows/ci.yml` (lint, no build/deploy)
+- [x] ✅ Verify it runs in under 1 minute
 
 ### Phase 3 — CMS Setup
 - [x] ✅ Initialize `apps/cms` with Payload v3 (manually scaffolded; `create-payload-app` had Node.js compatibility issues)
@@ -433,7 +459,7 @@ Resource overhead: ~10m CPU / 64Mi RAM (one persistent pod on `odin-vm`).
 - [x] ✅ Import Payload types directly from `@portfolio/cms` in `apps/web` — *adapted: created `packages/types` workspace instead (web app is JS)*
 - [x] ✅ Replace hardcoded data in `apps/web` pages with Payload REST API `fetch()` calls
 - [x] ✅ Add `generateStaticParams()` to all dynamic routes (`/projects/[slug]`)
-- [x] Update Cloudflare dashboard env vars with real CMS URL and API token
+- [x] ✅ Update Cloudflare dashboard env vars with real CMS URL and API token
 - [x] ✅ Validate full static build fetches all content correctly
 
 ### Phase 5 — CMS CI/CD + k3s (GHCR)
@@ -462,6 +488,15 @@ Resource overhead: ~10m CPU / 64Mi RAM (one persistent pod on `odin-vm`).
 - [x] ✅ Add `deploy.danipras.dev` route to Cloudflare Tunnel config
 - [x] ✅ Apply webhook-receiver manifests: `kubectl apply -f webhook-receiver/`
 - [x] ✅ Do end-to-end test: push tag `cms-v1.0.0` → image built → webhook fires → pod restarts with new image
+
+---
+
+## Pending / Remaining Tasks
+
+| # | Task | Phase | Status |
+|---|------|-------|--------|
+| 1 | Configure GitHub Secrets for web deploy (`NEXT_PUBLIC_CMS_URL`, `CMS_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`) | Phase 2 — GitHub Actions | ⏳ Pending |
+| 2 | Test end-to-end deploy: push tag `web-v1.0.0` → GitHub Actions builds → deploys to Cloudflare Pages | Phase 2 — Deploy | ⏳ Pending |
 
 ---
 
