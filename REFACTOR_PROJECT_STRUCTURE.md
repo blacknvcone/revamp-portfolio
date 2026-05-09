@@ -443,14 +443,14 @@ Resource overhead: ~10m CPU / 64Mi RAM (one persistent pod on `odin-vm`).
 - [x] ✅ Create `.github/workflows/build-cms.yml` (build → push to GHCR → trigger webhook)
 - [x] ✅ Update `build-cms.yml`: switch from OCIR to GHCR (`GITHUB_TOKEN` auth, `ghcr.io/.../cms-payload` image)
 - [x] ✅ Update deploy payload to include `namespace` + `deployment` for generic webhook receiver
-- [ ] Add GitHub Secret: `WEBHOOK_SECRET`
-- [ ] Test: push tag `cms-v1.0.0` → image appears in GHCR Packages → webhook fires → deployment restarts
+- [x] ✅ Add GitHub Secret: `WEBHOOK_SECRET`
+- [x] ✅ Test: push tag `cms-v1.0.0` → image appears in GHCR Packages → webhook fires → deployment restarts
 
 **CMS k3s Manifests (`apps/cms/infra/`):**
 - [x] ✅ Create `apps/cms/infra/` manifests (namespace, secret, ghcr-pull-secret, deployment, service, ingressroute) — no PVC (R2 used instead)
-- [ ] Fill in `secret.yaml` with real base64 values (MongoDB URI + R2 credentials) and apply
-- [ ] Generate `ghcr-pull-secret.yaml` via `kubectl create secret docker-registry` (use GitHub PAT with `read:packages`) and apply
-- [ ] Verify CMS is live at `cms.danipras.dev`
+- [x] ✅ Fill in `secret.yaml` with real base64 values (MongoDB URI + R2 credentials) and apply
+- [x] ✅ Generate `ghcr-pull-secret.yaml` via `kubectl create secret docker-registry` (use GitHub PAT with `read:packages`) and apply
+- [x] ✅ Verify CMS is live at `cms.danipras.dev`
 
 **Shared Webhook Receiver (`obelix/webhook-receiver/`):**
 - [x] ✅ Move webhook-receiver manifests to `obelix` repo (shared infra, not app-specific)
@@ -458,10 +458,10 @@ Resource overhead: ~10m CPU / 64Mi RAM (one persistent pod on `odin-vm`).
 - [x] ✅ Upgrade RBAC: Role → ClusterRole + ClusterRoleBinding (can patch deployments in any namespace)
 - [x] ✅ Update Python server to read `namespace` + `deployment` from JSON payload
 - [x] ✅ Add Traefik rate-limit middleware
-- [ ] Fill in `secret.yaml` with generated `WEBHOOK_SECRET` and apply
-- [ ] Add `deploy.danipras.dev` route to Cloudflare Tunnel config
-- [ ] Apply webhook-receiver manifests: `kubectl apply -f webhook-receiver/`
-- [ ] Do end-to-end test: push tag `cms-v1.0.0` → image built → webhook fires → pod restarts with new image
+- [x] ✅ Fill in `secret.yaml` with generated `WEBHOOK_SECRET` and apply
+- [x] ✅ Add `deploy.danipras.dev` route to Cloudflare Tunnel config
+- [x] ✅ Apply webhook-receiver manifests: `kubectl apply -f webhook-receiver/`
+- [x] ✅ Do end-to-end test: push tag `cms-v1.0.0` → image built → webhook fires → pod restarts with new image
 
 ---
 

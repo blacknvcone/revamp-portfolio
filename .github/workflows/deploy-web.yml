@@ -34,7 +34,7 @@ jobs:
         run: pnpm --filter @portfolio/web build
         env:
           NEXT_PUBLIC_CMS_URL: ${{ secrets.NEXT_PUBLIC_CMS_URL }}
-          CMS_API_SECRET: ${{ secrets.CMS_API_SECRET }}
+          CMS_API_KEY: ${{ secrets.CMS_API_KEY }}
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/pages-action@v1

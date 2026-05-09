@@ -1,4 +1,5 @@
 const CMS_URL = process.env.NEXT_PUBLIC_CMS_URL || 'http://localhost:3001';
+const CMS_API_KEY = process.env.CMS_API_KEY;
 
 async function fetchCMS(path, options = {}) {
   const url = `${CMS_URL}${path}`;
@@ -7,6 +8,7 @@ async function fetchCMS(path, options = {}) {
       ...options,
       headers: {
         'Content-Type': 'application/json',
+        ...(CMS_API_KEY ? { Authorization: `users API-Key ${CMS_API_KEY}` } : {}),
         ...(options.headers || {}),
       },
       // For static export, data is fetched at build time
