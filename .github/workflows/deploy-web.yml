@@ -36,6 +36,16 @@ jobs:
           NEXT_PUBLIC_CMS_URL: ${{ secrets.NEXT_PUBLIC_CMS_URL }}
           CMS_API_KEY: ${{ secrets.CMS_API_KEY }}
 
+      - name: Create Cloudflare Pages project if not exists
+        run: |
+          curl -s -X POST "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d '{"name":"raven-portfolio","production_branch":"main"}' || true
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
       - name: Deploy to Cloudflare Pages
         run: pnpm --filter @portfolio/web exec wrangler pages deploy apps/web/out --project-name=raven-portfolio
         env:
