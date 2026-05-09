@@ -37,6 +37,11 @@ export default buildConfig({
       collections: {
         media: {
           prefix: 'media',
+          generateFileURL: ({ filename, prefix }) => {
+            const publicUrl = process.env.S3_PUBLIC_URL || '';
+            const pathPrefix = prefix ? `${prefix}/` : '';
+            return `${publicUrl}/${pathPrefix}${filename}`;
+          },
         },
       },
       bucket: process.env.S3_BUCKET || '',
@@ -48,11 +53,6 @@ export default buildConfig({
         endpoint: process.env.S3_ENDPOINT || '',
         region: 'auto',
         forcePathStyle: true,
-      },
-      generateFileURL: ({ filename, prefix }) => {
-        const publicUrl = process.env.S3_PUBLIC_URL || '';
-        const pathPrefix = prefix ? `${prefix}/` : '';
-        return `${publicUrl}/${pathPrefix}${filename}`;
       },
     }),
   ],
