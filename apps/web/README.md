@@ -30,7 +30,7 @@ git tag web-v1.0.0
 git push origin web-v1.0.0
 ```
 
-GitHub Actions will build the app and upload the static output to the **raven-portfolio** project on Cloudflare Pages.
+GitHub Actions will build the app and deploy the static output to the **raven-portfolio** project on Cloudflare Pages using Wrangler.
 
 ---
 
