@@ -42,11 +42,6 @@ spec:
                 secretKeyRef:
                   name: cms-payload-secret
                   key: PAYLOAD_PUBLIC_SERVER_URL
-            - name: CMS_API_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: cms-payload-secret
-                  key: CMS_API_SECRET
             - name: S3_BUCKET
               valueFrom:
                 secretKeyRef:
