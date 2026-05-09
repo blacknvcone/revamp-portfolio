@@ -49,6 +49,11 @@ export default buildConfig({
         region: 'auto',
         forcePathStyle: true,
       },
+      generateFileURL: ({ filename, prefix }) => {
+        const publicUrl = process.env.S3_PUBLIC_URL || '';
+        const pathPrefix = prefix ? `${prefix}/` : '';
+        return `${publicUrl}/${pathPrefix}${filename}`;
+      },
     }),
   ],
   sharp,
