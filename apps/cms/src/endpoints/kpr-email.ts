@@ -678,11 +678,11 @@ const sendPaymentReminderHandler = async (req: PayloadRequest) => {
       html,
     })
 
-    // Update lastSentAt
+    // Update last sent timestamp
     await req.payload.update({
       collection: 'kpr-reminders',
       id: reminderId,
-      data: { lastSentAt: now.toISOString() },
+      data: { lastPaymentReminderSent: now.toISOString() },
     })
 
     return Response.json({
@@ -937,11 +937,11 @@ const sendMonthlyInsightHandler = async (req: PayloadRequest) => {
       html,
     })
 
-    // Update lastSentAt
+    // Update last sent timestamp
     await req.payload.update({
       collection: 'kpr-reminders',
       id: reminderId,
-      data: { lastSentAt: now.toISOString() },
+      data: { lastMonthlyInsightSent: now.toISOString() },
     })
 
     return Response.json({
