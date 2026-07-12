@@ -64,6 +64,7 @@ export type SupportedTimezones =
 export interface Config {
   auth: {
     users: UserAuthOperations;
+    'monetalis-users': MonetalisUserAuthOperations;
   };
   blocks: {};
   collections: {
@@ -74,6 +75,7 @@ export interface Config {
     skills: Skill;
     educations: Education;
     certifications: Certification;
+    'monetalis-users': MonetalisUser;
     'kpr-loans': KprLoan;
     'kpr-rate-tiers': KprRateTier;
     'kpr-schedule': KprSchedule;
@@ -94,6 +96,7 @@ export interface Config {
     skills: SkillsSelect<false> | SkillsSelect<true>;
     educations: EducationsSelect<false> | EducationsSelect<true>;
     certifications: CertificationsSelect<false> | CertificationsSelect<true>;
+    'monetalis-users': MonetalisUsersSelect<false> | MonetalisUsersSelect<true>;
     'kpr-loans': KprLoansSelect<false> | KprLoansSelect<true>;
     'kpr-rate-tiers': KprRateTiersSelect<false> | KprRateTiersSelect<true>;
     'kpr-schedule': KprScheduleSelect<false> | KprScheduleSelect<true>;
@@ -119,13 +122,31 @@ export interface Config {
   widgets: {
     collections: CollectionsWidget;
   };
-  user: User;
+  user: User | MonetalisUser;
   jobs: {
     tasks: unknown;
     workflows: unknown;
   };
 }
 export interface UserAuthOperations {
+  forgotPassword: {
+    email: string;
+    password: string;
+  };
+  login: {
+    email: string;
+    password: string;
+  };
+  registerFirstUser: {
+    email: string;
+    password: string;
+  };
+  unlock: {
+    email: string;
+    password: string;
+  };
+}
+export interface MonetalisUserAuthOperations {
   forgotPassword: {
     email: string;
     password: string;
@@ -301,6 +322,45 @@ export interface Certification {
   credentialUrl?: string | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * User yang bisa mengakses dashboard Monetalis
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "monetalis-users".
+ */
+export interface MonetalisUser {
+  id: string;
+  name: string;
+  /**
+   * Admin bisa manage data via CMS. Viewer hanya bisa lihat dashboard.
+   */
+  role: 'admin' | 'viewer';
+  /**
+   * Nonaktifkan untuk memblokir akses tanpa menghapus user
+   */
+  isActive?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+  enableAPIKey?: boolean | null;
+  apiKey?: string | null;
+  apiKeyIndex?: string | null;
+  email: string;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiration?: string | null;
+  salt?: string | null;
+  hash?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
+  password?: string | null;
+  collection: 'monetalis-users';
 }
 /**
  * Metadata pinjaman KPR
@@ -510,6 +570,10 @@ export interface PayloadLockedDocument {
         value: string | Certification;
       } | null)
     | ({
+        relationTo: 'monetalis-users';
+        value: string | MonetalisUser;
+      } | null)
+    | ({
         relationTo: 'kpr-loans';
         value: string | KprLoan;
       } | null)
@@ -534,10 +598,15 @@ export interface PayloadLockedDocument {
         value: string | KprSimulation;
       } | null);
   globalSlug?: string | null;
-  user: {
-    relationTo: 'users';
-    value: string | User;
-  };
+  user:
+    | {
+        relationTo: 'users';
+        value: string | User;
+      }
+    | {
+        relationTo: 'monetalis-users';
+        value: string | MonetalisUser;
+      };
   updatedAt: string;
   createdAt: string;
 }
@@ -547,10 +616,15 @@ export interface PayloadLockedDocument {
  */
 export interface PayloadPreference {
   id: string;
-  user: {
-    relationTo: 'users';
-    value: string | User;
-  };
+  user:
+    | {
+        relationTo: 'users';
+        value: string | User;
+      }
+    | {
+        relationTo: 'monetalis-users';
+        value: string | MonetalisUser;
+      };
   key?: string | null;
   value?:
     | {
@@ -696,6 +770,34 @@ export interface CertificationsSelect<T extends boolean = true> {
   credentialUrl?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "monetalis-users_select".
+ */
+export interface MonetalisUsersSelect<T extends boolean = true> {
+  name?: T;
+  role?: T;
+  isActive?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  enableAPIKey?: T;
+  apiKey?: T;
+  apiKeyIndex?: T;
+  email?: T;
+  resetPasswordToken?: T;
+  resetPasswordExpiration?: T;
+  salt?: T;
+  hash?: T;
+  loginAttempts?: T;
+  lockUntil?: T;
+  sessions?:
+    | T
+    | {
+        id?: T;
+        createdAt?: T;
+        expiresAt?: T;
+      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
