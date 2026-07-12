@@ -74,6 +74,12 @@ export interface Config {
     skills: Skill;
     educations: Education;
     certifications: Certification;
+    'kpr-loans': KprLoan;
+    'kpr-rate-tiers': KprRateTier;
+    'kpr-schedule': KprSchedule;
+    'kpr-extra-payments': KprExtraPayment;
+    'kpr-reminders': KprReminder;
+    'kpr-simulations': KprSimulation;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -88,6 +94,12 @@ export interface Config {
     skills: SkillsSelect<false> | SkillsSelect<true>;
     educations: EducationsSelect<false> | EducationsSelect<true>;
     certifications: CertificationsSelect<false> | CertificationsSelect<true>;
+    'kpr-loans': KprLoansSelect<false> | KprLoansSelect<true>;
+    'kpr-rate-tiers': KprRateTiersSelect<false> | KprRateTiersSelect<true>;
+    'kpr-schedule': KprScheduleSelect<false> | KprScheduleSelect<true>;
+    'kpr-extra-payments': KprExtraPaymentsSelect<false> | KprExtraPaymentsSelect<true>;
+    'kpr-reminders': KprRemindersSelect<false> | KprRemindersSelect<true>;
+    'kpr-simulations': KprSimulationsSelect<false> | KprSimulationsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -139,6 +151,9 @@ export interface User {
   id: string;
   updatedAt: string;
   createdAt: string;
+  enableAPIKey?: boolean | null;
+  apiKey?: string | null;
+  apiKeyIndex?: string | null;
   email: string;
   resetPasswordToken?: string | null;
   resetPasswordExpiration?: string | null;
@@ -288,6 +303,161 @@ export interface Certification {
   createdAt: string;
 }
 /**
+ * Metadata pinjaman KPR
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "kpr-loans".
+ */
+export interface KprLoan {
+  id: string;
+  borrowerName: string;
+  coBorrower?: string | null;
+  bankName: string;
+  branch?: string | null;
+  loanAmount: number;
+  housePrice: number;
+  downPayment: number;
+  tenorMonths: number;
+  firstPayment: string;
+  offeringLetterRef?: string | null;
+  propertyAddress?: string | null;
+  certificateNo?: string | null;
+  collateralValue?: number | null;
+  /**
+   * Contoh: 10 = 10%
+   */
+  penaltyBeforeMinTenor?: number | null;
+  /**
+   * Contoh: 2.5 = 2.5%
+   */
+  penaltyAfterMinTenor?: number | null;
+  /**
+   * Setelah periode ini, penalti turun
+   */
+  minTenorMonths?: number | null;
+  minPartialPrepayment?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Tier suku bunga berjenjang (stepped fixed rate)
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "kpr-rate-tiers".
+ */
+export interface KprRateTier {
+  id: string;
+  loan: string | KprLoan;
+  /**
+   * 1, 2, 3, dst.
+   */
+  tierOrder: number;
+  startMonth: number;
+  endMonth: number;
+  /**
+   * Contoh: 4.75, 8.00, 10.25
+   */
+  ratePct: number;
+  installment: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Jadwal angsuran 240 bulan (seeded from CSV)
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "kpr-schedule".
+ */
+export interface KprSchedule {
+  id: string;
+  loan: string | KprLoan;
+  monthNumber: number;
+  calendarDate: string;
+  principalPortion: number;
+  interestPortion: number;
+  totalInstallment: number;
+  outstandingBalance: number;
+  interestRate: number;
+  isPaid?: boolean | null;
+  paidDate?: string | null;
+  paidAmount?: number | null;
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Log pembayaran ekstra / pelunasan sebagian
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "kpr-extra-payments".
+ */
+export interface KprExtraPayment {
+  id: string;
+  loan: string | KprLoan;
+  paymentDate: string;
+  amount: number;
+  note?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Konfigurasi email reminder angsuran
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "kpr-reminders".
+ */
+export interface KprReminder {
+  id: string;
+  loan: string | KprLoan;
+  email: string;
+  /**
+   * Reminder dikirim pada tanggal ini setiap bulan (1-28)
+   */
+  reminderDay: number;
+  isActive?: boolean | null;
+  lastSentAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Skenario simulasi pembayaran yang tersimpan
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "kpr-simulations".
+ */
+export interface KprSimulation {
+  id: string;
+  loan: string | KprLoan;
+  name: string;
+  scenarioType: 'early_payoff' | 'extra_payment' | 'refinance';
+  /**
+   * Input parameter simulasi (JSON)
+   */
+  params:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Hasil perhitungan simulasi (JSON)
+   */
+  results:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -338,6 +508,30 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'certifications';
         value: string | Certification;
+      } | null)
+    | ({
+        relationTo: 'kpr-loans';
+        value: string | KprLoan;
+      } | null)
+    | ({
+        relationTo: 'kpr-rate-tiers';
+        value: string | KprRateTier;
+      } | null)
+    | ({
+        relationTo: 'kpr-schedule';
+        value: string | KprSchedule;
+      } | null)
+    | ({
+        relationTo: 'kpr-extra-payments';
+        value: string | KprExtraPayment;
+      } | null)
+    | ({
+        relationTo: 'kpr-reminders';
+        value: string | KprReminder;
+      } | null)
+    | ({
+        relationTo: 'kpr-simulations';
+        value: string | KprSimulation;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -388,6 +582,9 @@ export interface PayloadMigration {
 export interface UsersSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
+  enableAPIKey?: T;
+  apiKey?: T;
+  apiKeyIndex?: T;
   email?: T;
   resetPasswordToken?: T;
   resetPasswordExpiration?: T;
@@ -497,6 +694,103 @@ export interface CertificationsSelect<T extends boolean = true> {
   year?: T;
   issuer?: T;
   credentialUrl?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "kpr-loans_select".
+ */
+export interface KprLoansSelect<T extends boolean = true> {
+  borrowerName?: T;
+  coBorrower?: T;
+  bankName?: T;
+  branch?: T;
+  loanAmount?: T;
+  housePrice?: T;
+  downPayment?: T;
+  tenorMonths?: T;
+  firstPayment?: T;
+  offeringLetterRef?: T;
+  propertyAddress?: T;
+  certificateNo?: T;
+  collateralValue?: T;
+  penaltyBeforeMinTenor?: T;
+  penaltyAfterMinTenor?: T;
+  minTenorMonths?: T;
+  minPartialPrepayment?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "kpr-rate-tiers_select".
+ */
+export interface KprRateTiersSelect<T extends boolean = true> {
+  loan?: T;
+  tierOrder?: T;
+  startMonth?: T;
+  endMonth?: T;
+  ratePct?: T;
+  installment?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "kpr-schedule_select".
+ */
+export interface KprScheduleSelect<T extends boolean = true> {
+  loan?: T;
+  monthNumber?: T;
+  calendarDate?: T;
+  principalPortion?: T;
+  interestPortion?: T;
+  totalInstallment?: T;
+  outstandingBalance?: T;
+  interestRate?: T;
+  isPaid?: T;
+  paidDate?: T;
+  paidAmount?: T;
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "kpr-extra-payments_select".
+ */
+export interface KprExtraPaymentsSelect<T extends boolean = true> {
+  loan?: T;
+  paymentDate?: T;
+  amount?: T;
+  note?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "kpr-reminders_select".
+ */
+export interface KprRemindersSelect<T extends boolean = true> {
+  loan?: T;
+  email?: T;
+  reminderDay?: T;
+  isActive?: T;
+  lastSentAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "kpr-simulations_select".
+ */
+export interface KprSimulationsSelect<T extends boolean = true> {
+  loan?: T;
+  name?: T;
+  scenarioType?: T;
+  params?: T;
+  results?: T;
   updatedAt?: T;
   createdAt?: T;
 }
