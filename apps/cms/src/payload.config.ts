@@ -23,6 +23,7 @@ import {
   KprExtraPayments,
   KprReminders,
   KprSimulations,
+  MonetalisUsers,
 } from './collections/monetalis';
 
 // Monetalis KPR custom endpoints
@@ -46,6 +47,7 @@ export default buildConfig({
     Educations,
     Certifications,
     // Monetalis KPR
+    MonetalisUsers,
     KprLoans,
     KprRateTiers,
     KprSchedule,
