@@ -333,6 +333,10 @@ export interface MonetalisUser {
   id: string;
   name: string;
   /**
+   * User hanya bisa mengakses data dari loan yang dipilih. 1 loan bisa dipakai banyak user.
+   */
+  loan: string | KprLoan;
+  /**
    * Admin bisa manage data via CMS. Viewer hanya bisa lihat dashboard.
    */
   role: 'admin' | 'viewer';
@@ -786,6 +790,7 @@ export interface CertificationsSelect<T extends boolean = true> {
  */
 export interface MonetalisUsersSelect<T extends boolean = true> {
   name?: T;
+  loan?: T;
   role?: T;
   isActive?: T;
   updatedAt?: T;

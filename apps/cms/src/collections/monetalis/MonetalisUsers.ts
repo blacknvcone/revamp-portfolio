@@ -26,6 +26,16 @@ export const MonetalisUsers: CollectionConfig = {
       label: 'Nama Lengkap',
     },
     {
+      name: 'loan',
+      type: 'relationship',
+      relationTo: 'kpr-loans',
+      required: true,
+      label: 'KPR Loan',
+      admin: {
+        description: 'User hanya bisa mengakses data dari loan yang dipilih. 1 loan bisa dipakai banyak user.',
+      },
+    },
+    {
       name: 'role',
       type: 'select',
       required: true,
@@ -49,6 +59,4 @@ export const MonetalisUsers: CollectionConfig = {
       },
     },
   ],
-  // No custom access control — let Payload defaults handle it
-  // CMS admin (from users collection) can manage all collections
 };
