@@ -15,6 +15,16 @@ import { Users } from './collections/Users';
 import { Educations } from './collections/Educations';
 import { Certifications } from './collections/Certifications';
 
+// Monetalis KPR collections
+import {
+  KprLoans,
+  KprRateTiers,
+  KprSchedule,
+  KprExtraPayments,
+  KprReminders,
+  KprSimulations,
+} from './collections/monetalis';
+
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
 
@@ -22,7 +32,24 @@ export default buildConfig({
   admin: {
     user: 'users',
   },
-  collections: [Users, Media, Projects, Experiences, Skills, Educations, Certifications],
+  collections: [
+    // Shared
+    Users,
+    Media,
+    // Portfolio Web
+    Projects,
+    Experiences,
+    Skills,
+    Educations,
+    Certifications,
+    // Monetalis KPR
+    KprLoans,
+    KprRateTiers,
+    KprSchedule,
+    KprExtraPayments,
+    KprReminders,
+    KprSimulations,
+  ],
   globals: [Profile],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || 'dev-secret-change-me',
