@@ -21,13 +21,20 @@ Monorepo containing a Next.js portfolio website and a shared Payload CMS backend
 │  Collections:                                       │
 │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐│
 │  │ Shared       │ │ Portfolio Web│ │ Monetalis    ││
-│  │ - Users      │ │ - Projects   │ │ - KprLoans   ││
-│  │ - Media      │ │ - Experience │ │ - RateTiers  ││
-│  │              │ │ - Skills     │ │ - Schedule   ││
-│  │              │ │ - Education  │ │ - ExtraPmts  ││
-│  │              │ │ - Certif.    │ │ - Reminders  ││
-│  │              │ │ - Profile(G) │ │ - Simulations││
+│  │ - Users      │ │ - Projects   │ │ - Users      ││
+│  │ - Media      │ │ - Experience │ │ - KprLoans   ││
+│  │              │ │ - Skills     │ │ - RateTiers  ││
+│  │              │ │ - Education  │ │ - Schedule   ││
+│  │              │ │ - Certif.    │ │ - ExtraPmts  ││
+│  │              │ │ - Profile(G) │ │ - Reminders  ││
+│  │              │ │              │ │ - Simulations││
 │  └──────────────┘ └──────────────┘ └──────────────┘│
+│                                                     │
+│  Custom Endpoints (Monetalis):                      │
+│  - /api/kpr/status, simulate, insights, seed        │
+│  - /api/kpr/send-payment-reminder                   │
+│  - /api/kpr/send-monthly-insight                    │
+│  - /api/kpr/send-*-test (per-user)                  │
 └─────────────────────┬───────────────────────────────┘
                       │ REST API
          ┌────────────┼─────────────┐
@@ -35,10 +42,9 @@ Monorepo containing a Next.js portfolio website and a shared Payload CMS backend
    ┌─────▼─────┐ ┌───▼────┐ ┌─────▼─────┐
    │ Portfolio  │ │Monetalis│ │ Future    │
    │ Web        │ │ Web     │ │ Apps      │
+   │ Next.js    │ │ Vite    │ │           │
    └───────────┘ └────────┘ └───────────┘
 ```
-
-The CMS acts as a shared backend for multiple frontend applications. Collections are organized into admin groups for clean separation.
 
 ## CMS Collections
 
@@ -55,11 +61,12 @@ The CMS acts as a shared backend for multiple frontend applications. Collections
 - `profile` — Global profile data
 
 ### Monetalis group
+- `monetalis-users` — Auth users (linked to 1 KPR loan, role: admin/viewer)
 - `kpr-loans` — KPR loan metadata (tab layout: Pinjaman, Dokumen, Aturan Penalti)
 - `kpr-rate-tiers` — Stepped fixed interest rate tiers
 - `kpr-schedule` — 240-month amortization schedule with payment tracking
 - `kpr-extra-payments` — Extra payment log
-- `kpr-reminders` — Email reminder configuration
+- `kpr-reminders` — Email reminder config (day, types, multi-user)
 - `kpr-simulations` — Saved payment simulations
 
 ### Custom Endpoints (Monetalis)
@@ -67,8 +74,11 @@ The CMS acts as a shared backend for multiple frontend applications. Collections
 - `POST /api/kpr/simulate/early-payoff` — Early payoff simulation
 - `POST /api/kpr/simulate/extra-payment` — Extra payment simulation
 - `GET /api/kpr/insights` — Financial insights & milestones
-- `POST /api/kpr/seed` — Seed KPR data (idempotent)
-- `POST /api/kpr/send-reminder` — Trigger email reminder
+- `POST /api/kpr/seed` — Seed KPR data (idempotent, marks paid entries)
+- `POST /api/kpr/send-payment-reminder` — Send to all users on loan
+- `POST /api/kpr/send-monthly-insight` — Send to all users on loan
+- `POST /api/kpr/send-payment-reminder-test` — Send to specific email
+- `POST /api/kpr/send-monthly-insight-test` — Send to specific email
 
 ## Getting Started
 
@@ -80,6 +90,9 @@ pnpm install
 pnpm dev          # Both apps
 pnpm dev:web      # Portfolio web only
 pnpm dev:cms      # CMS only
+
+# Generate types after collection changes
+pnpm generate:types:cms
 ```
 
 ## Structure
@@ -107,14 +120,19 @@ revamp-portfolio/
 │           │       ├── KprExtraPayments.ts
 │           │       ├── KprReminders.ts
 │           │       ├── KprSimulations.ts
+│           │       ├── MonetalisUsers.ts
 │           │       └── index.ts
 │           ├── endpoints/
-│           │   └── kpr.ts      # Custom KPR endpoints
+│           │   ├── kpr.ts      # KPR custom endpoints
+│           │   └── kpr-email.ts # Email endpoints
 │           └── payload.config.ts
 ├── packages/
 │   └── types/                  # Shared types
 ├── .github/
 │   └── workflows/              # CI/CD
+│       ├── build-cms.yml       # Triggered by cms-v* tags
+│       ├── deploy-web.yml      # Triggered by web-v* tags
+│       └── ci.yml
 ├── turbo.json
 └── pnpm-workspace.yaml
 ```
@@ -125,13 +143,21 @@ revamp-portfolio/
 - **Portfolio Web**: Cloudflare Pages
 - **Monetalis Web**: K8s (namespace: `monetalis`), domain: `monetalis.danipras.dev`
 
+### CMS CI/CD
+
+```bash
+# Deploy CMS
+git tag -a cms-v1.4.0 -m "release" && git push origin cms-v1.4.0
+```
+
+Triggers: Docker build → Push GHCR → Rolling restart via webhook
+
 ## Adding a New Application
 
-To add a new frontend application that uses this shared CMS:
-
-1. Create a new collection group in `apps/cms/src/collections/`
-2. Add collection files with `admin.group: 'YourAppName'`
+1. Create collection files in `apps/cms/src/collections/yourapp/`
+2. Use `admin.group: 'YourApp'` for sidebar grouping
 3. Register collections in `payload.config.ts`
-4. Add custom endpoints if needed in `apps/cms/src/endpoints/`
-5. Add your frontend domain to the CORS config
-6. Build and deploy
+4. Add custom endpoints in `apps/cms/src/endpoints/`
+5. Add CORS domain in `payload.config.ts`
+6. Run `pnpm generate:types:cms` to regenerate types
+7. Build and deploy
