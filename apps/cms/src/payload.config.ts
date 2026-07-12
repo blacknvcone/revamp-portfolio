@@ -1,5 +1,6 @@
 import { mongooseAdapter } from '@payloadcms/db-mongodb';
 import { s3Storage } from '@payloadcms/storage-s3';
+import { nodemailerAdapter } from '@payloadcms/email-nodemailer';
 import { lexicalEditor } from '@payloadcms/richtext-lexical';
 import { buildConfig } from 'payload';
 import sharp from 'sharp';
@@ -58,6 +59,18 @@ export default buildConfig({
   ],
   globals: [Profile],
   endpoints: [...kprEndpoints, ...kprEmailEndpoints],
+  email: nodemailerAdapter({
+    defaultFromAddress: 'noreply@monetalis.danipras.dev',
+    defaultFromName: 'Monetalis',
+    transportOptions: {
+      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      port: Number(process.env.SMTP_PORT) || 587,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    },
+  }),
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || 'dev-secret-change-me',
   typescript: {
