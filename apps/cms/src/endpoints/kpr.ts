@@ -724,6 +724,10 @@ const seedHandler = async (req: PayloadRequest) => {
       240,
     )
 
+    // Calculate current month to mark paid entries
+    const now = new Date()
+    const currentMonth = Math.max(1, monthsBetween(firstPayment, now) + 1)
+
     // Create in batches of 50 for performance
     const BATCH_SIZE = 50
     let createdCount = 0
@@ -731,15 +735,20 @@ const seedHandler = async (req: PayloadRequest) => {
     for (let i = 0; i < scheduleEntries.length; i += BATCH_SIZE) {
       const batch = scheduleEntries.slice(i, i + BATCH_SIZE)
       await Promise.all(
-        batch.map((entry) =>
-          req.payload.create({
+        batch.map((entry) => {
+          const entryDate = new Date(entry.calendarDate)
+          const isPaid = entry.monthNumber < currentMonth
+          return req.payload.create({
             collection: 'kpr-schedule',
             data: {
               loan: loan.id,
               ...entry,
+              isPaid,
+              paidDate: isPaid ? entry.calendarDate : undefined,
+              paidAmount: isPaid ? entry.totalInstallment : undefined,
             },
-          }),
-        ),
+          })
+        }),
       )
       createdCount += batch.length
     }
