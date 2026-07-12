@@ -88,5 +88,9 @@ export default buildConfig({
     }),
   ],
   sharp,
-  cors: [process.env.PAYLOAD_PUBLIC_SERVER_URL || 'http://localhost:3001'].filter(Boolean),
+  cors: [
+    process.env.PAYLOAD_PUBLIC_SERVER_URL || 'http://localhost:3001',
+    'https://monetalis.danipras.dev',
+    'http://localhost:3000',
+  ].filter(Boolean),
 });
