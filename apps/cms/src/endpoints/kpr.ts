@@ -218,7 +218,7 @@ const statusHandler = async (req: PayloadRequest) => {
 
 const earlyPayoffHandler = async (req: PayloadRequest) => {
   try {
-    const body = await req.json()
+    const body = await req.json?.() ?? {}
     const { loanId, targetMonth } = body
 
     if (!loanId || !targetMonth) {
@@ -324,7 +324,7 @@ const earlyPayoffHandler = async (req: PayloadRequest) => {
 
 const extraPaymentHandler = async (req: PayloadRequest) => {
   try {
-    const body = await req.json()
+    const body = await req.json?.() ?? {}
     const { loanId, monthlyExtra, startMonth } = body
 
     if (!loanId || monthlyExtra == null || !startMonth) {
