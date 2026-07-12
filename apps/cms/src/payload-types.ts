@@ -471,11 +471,20 @@ export interface KprReminder {
   loan: string | KprLoan;
   email: string;
   /**
-   * Reminder dikirim pada tanggal ini setiap bulan (1-28)
+   * Tanggal berapa reminder dikirim (1-28). Default: 1 (awal bulan)
    */
   reminderDay: number;
+  /**
+   * Email pengingat angsuran sebelum jatuh tempo
+   */
+  sendPaymentReminder?: boolean | null;
+  /**
+   * Email summary analisa insight setiap bulan
+   */
+  sendMonthlyInsight?: boolean | null;
   isActive?: boolean | null;
-  lastSentAt?: string | null;
+  lastPaymentReminderSent?: string | null;
+  lastMonthlyInsightSent?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -878,8 +887,11 @@ export interface KprRemindersSelect<T extends boolean = true> {
   loan?: T;
   email?: T;
   reminderDay?: T;
+  sendPaymentReminder?: T;
+  sendMonthlyInsight?: T;
   isActive?: T;
-  lastSentAt?: T;
+  lastPaymentReminderSent?: T;
+  lastMonthlyInsightSent?: T;
   updatedAt?: T;
   createdAt?: T;
 }

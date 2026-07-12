@@ -26,9 +26,28 @@ export const KprReminders: CollectionConfig = {
       required: true,
       min: 1,
       max: 28,
-      label: 'Hari Reminder (tanggal berapa)',
+      defaultValue: 1,
+      label: 'Hari Reminder',
       admin: {
-        description: 'Reminder dikirim pada tanggal ini setiap bulan (1-28)',
+        description: 'Tanggal berapa reminder dikirim (1-28). Default: 1 (awal bulan)',
+      },
+    },
+    {
+      name: 'sendPaymentReminder',
+      type: 'checkbox',
+      defaultValue: true,
+      label: 'Kirim Pengingat Pembayaran',
+      admin: {
+        description: 'Email pengingat angsuran sebelum jatuh tempo',
+      },
+    },
+    {
+      name: 'sendMonthlyInsight',
+      type: 'checkbox',
+      defaultValue: true,
+      label: 'Kirim Laporan Bulanan',
+      admin: {
+        description: 'Email summary analisa insight setiap bulan',
       },
     },
     {
@@ -38,9 +57,15 @@ export const KprReminders: CollectionConfig = {
       label: 'Aktif',
     },
     {
-      name: 'lastSentAt',
+      name: 'lastPaymentReminderSent',
       type: 'date',
-      label: 'Terakhir Dikirim',
+      label: 'Terakhir Kirim Pengingat',
+      admin: { readOnly: true },
+    },
+    {
+      name: 'lastMonthlyInsightSent',
+      type: 'date',
+      label: 'Terakhir Kirim Laporan',
       admin: { readOnly: true },
     },
   ],

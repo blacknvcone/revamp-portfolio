@@ -27,7 +27,8 @@ import {
 } from './collections/monetalis';
 
 // Monetalis KPR custom endpoints
-import { kprEndpoints } from './endpoints/kpr';
+import { kprEndpoints } from './endpoints/kpr'
+import { kprEmailEndpoints } from './endpoints/kpr-email';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -56,7 +57,7 @@ export default buildConfig({
     KprSimulations,
   ],
   globals: [Profile],
-  endpoints: kprEndpoints,
+  endpoints: [...kprEndpoints, ...kprEmailEndpoints],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || 'dev-secret-change-me',
   typescript: {
