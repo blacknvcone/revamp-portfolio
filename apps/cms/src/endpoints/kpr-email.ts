@@ -953,7 +953,8 @@ const sendMonthlyInsightHandler = async (req: PayloadRequest) => {
       upcomingMilestones: milestones.slice(0, 5),
       recommendations,
       totalInterestFullTenor: totalInterestFull,
-      currentPhase,
+      currentPhase: `Fase ${currentPhase} (${currentRate}%)`,
+
       monthsUntilNextPhase,
       nextPhaseRate,
     })
