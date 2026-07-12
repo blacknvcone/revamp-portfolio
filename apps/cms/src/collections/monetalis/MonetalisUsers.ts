@@ -49,23 +49,6 @@ export const MonetalisUsers: CollectionConfig = {
       },
     },
   ],
-  access: {
-    // Only admins can read/manage users
-    read: ({ req }) => {
-      if (!req.user) return false;
-      return (req.user as any).role === 'admin';
-    },
-    create: ({ req }) => {
-      if (!req.user) return false;
-      return (req.user as any).role === 'admin';
-    },
-    update: ({ req }) => {
-      if (!req.user) return false;
-      return (req.user as any).role === 'admin';
-    },
-    delete: ({ req }) => {
-      if (!req.user) return false;
-      return (req.user as any).role === 'admin';
-    },
-  },
+  // No custom access control — let Payload defaults handle it
+  // CMS admin (from users collection) can manage all collections
 };
