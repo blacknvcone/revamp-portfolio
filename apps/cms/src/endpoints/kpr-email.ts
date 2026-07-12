@@ -689,8 +689,8 @@ const sendPaymentReminderHandler = async (req: PayloadRequest) => {
     })
 
     // Get all users for this loan
-    const loanId = typeof reminder.loan === 'object' ? reminder.loan?.id : reminder.loan
-    const recipients = await getLoanUserEmails(req.payload, loanId as string)
+    // loanId already available from body destructuring
+    const recipients = await getLoanUserEmails(req.payload, loanId)
 
     if (recipients.length === 0) {
       return Response.json({ error: 'No active users found for this loan' }, { status: 404 })
@@ -959,8 +959,8 @@ const sendMonthlyInsightHandler = async (req: PayloadRequest) => {
     })
 
     // Get all users for this loan
-    const loanId = typeof reminder.loan === 'object' ? reminder.loan?.id : reminder.loan
-    const recipients = await getLoanUserEmails(req.payload, loanId as string)
+    // loanId already available from body destructuring
+    const recipients = await getLoanUserEmails(req.payload, loanId)
 
     if (recipients.length === 0) {
       return Response.json({ error: 'No active users found for this loan' }, { status: 404 })
