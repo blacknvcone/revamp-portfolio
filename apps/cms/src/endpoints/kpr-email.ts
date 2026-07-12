@@ -40,6 +40,24 @@ function monthsBetween(from: Date, to: Date): number {
   return (to.getFullYear() - from.getFullYear()) * 12 + (to.getMonth() - from.getMonth())
 }
 
+// ─── Get all user emails for a loan ─────────────────────────────────────────
+async function getLoanUserEmails(payload: any, loanId: string): Promise<string[]> {
+  // Get emails from monetalis-users linked to this loan
+  const users = await payload.find({
+    collection: 'monetalis-users',
+    where: {
+      and: [
+        { loan: { equals: loanId } },
+        { isActive: { equals: true } },
+      ],
+    },
+    limit: 100,
+    depth: 0,
+  })
+  return users.docs.map((u: any) => u.email).filter(Boolean)
+}
+
+
 function getRateForMonth(
   tiers: any[],
   month: number,
@@ -670,13 +688,25 @@ const sendPaymentReminderHandler = async (req: PayloadRequest) => {
       tenorMonths: loan.tenorMonths,
     })
 
-    // Send email
-    const info = await transporter.sendMail({
-      from: `"Monetalis" <${process.env.SMTP_USER}>`,
-      to: reminder.email,
-      subject: `🔔 Pengingat Angsuran KPR - ${monthYear}`,
-      html,
-    })
+    // Get all users for this loan
+    const loanId = typeof reminder.loan === 'object' ? reminder.loan?.id : reminder.loan
+    const recipients = await getLoanUserEmails(req.payload, loanId as string)
+
+    if (recipients.length === 0) {
+      return Response.json({ error: 'No active users found for this loan' }, { status: 404 })
+    }
+
+    // Send email to all users
+    const results = []
+    for (const email of recipients) {
+      const info = await transporter.sendMail({
+        from: `"Monetalis" <${process.env.SMTP_USER}>`,
+        to: email,
+        subject: `🔔 Pengingat Angsuran KPR - ${monthYear}`,
+        html,
+      })
+      results.push({ email, messageId: info.messageId })
+    }
 
     // Update last sent timestamp
     await req.payload.update({
@@ -687,9 +717,8 @@ const sendPaymentReminderHandler = async (req: PayloadRequest) => {
 
     return Response.json({
       success: true,
-      message: 'Payment reminder email sent',
-      messageId: info.messageId,
-      recipient: reminder.email,
+      message: `Payment reminder sent to ${recipients.length} user(s)`,
+      recipients: results,
       monthYear,
       amount: nextUnpaid.totalInstallment,
     })
@@ -929,13 +958,25 @@ const sendMonthlyInsightHandler = async (req: PayloadRequest) => {
       nextPhaseRate,
     })
 
-    // Send email
-    const info = await transporter.sendMail({
-      from: `"Monetalis" <${process.env.SMTP_USER}>`,
-      to: reminder.email,
-      subject: `📊 Laporan Bulanan KPR - ${monthYear}`,
-      html,
-    })
+    // Get all users for this loan
+    const loanId = typeof reminder.loan === 'object' ? reminder.loan?.id : reminder.loan
+    const recipients = await getLoanUserEmails(req.payload, loanId as string)
+
+    if (recipients.length === 0) {
+      return Response.json({ error: 'No active users found for this loan' }, { status: 404 })
+    }
+
+    // Send email to all users
+    const results = []
+    for (const email of recipients) {
+      const info = await transporter.sendMail({
+        from: `"Monetalis" <${process.env.SMTP_USER}>`,
+        to: email,
+        subject: `📊 Laporan Bulanan KPR - ${monthYear}`,
+        html,
+      })
+      results.push({ email, messageId: info.messageId })
+    }
 
     // Update last sent timestamp
     await req.payload.update({
@@ -946,9 +987,8 @@ const sendMonthlyInsightHandler = async (req: PayloadRequest) => {
 
     return Response.json({
       success: true,
-      message: 'Monthly insight email sent',
-      messageId: info.messageId,
-      recipient: reminder.email,
+      message: `Monthly insight sent to ${recipients.length} user(s)`,
+      recipients: results,
       monthYear,
       progressPct,
       upcomingMilestones: milestones.slice(0, 5),
