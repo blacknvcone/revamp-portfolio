@@ -1072,7 +1072,7 @@ export const kprEmailTestEndpoints = [
         const info = await transporter.sendMail({
           from: `"Monetalis" <${process.env.SMTP_USER}>`,
           to: email,
-          subject: `🔔 [TEST] Pengingat Angsuran KPR - ${monthYear}`,
+          subject: `🔔 Pengingat Angsuran KPR - ${monthYear}`,
           html,
         })
 
@@ -1172,7 +1172,7 @@ export const kprEmailTestEndpoints = [
         const info = await transporter.sendMail({
           from: `"Monetalis" <${process.env.SMTP_USER}>`,
           to: email,
-          subject: `📊 [TEST] Laporan Bulanan KPR - ${monthYear}`,
+          subject: `📊 Laporan Bulanan KPR - ${monthYear}`,
           html,
         })
 
