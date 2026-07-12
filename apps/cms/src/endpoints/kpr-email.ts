@@ -1016,3 +1016,170 @@ export const kprEmailEndpoints = [
     handler: sendMonthlyInsightHandler,
   },
 ]
+
+// ─── Test endpoints: send to specific email ──────────────────────────────────
+
+export const kprEmailTestEndpoints = [
+  {
+    path: '/kpr/send-payment-reminder-test',
+    method: 'post' as const,
+    handler: async (req: PayloadRequest) => {
+      try {
+        const body = await req.json?.() ?? {}
+        const { email, loanId } = body
+        if (!email || !loanId) {
+          return Response.json({ error: 'email and loanId are required' }, { status: 400 })
+        }
+
+        const loans = await req.payload.find({
+          collection: 'kpr-loans',
+          where: { id: { equals: loanId } },
+          limit: 1, depth: 0,
+        })
+        if (!loans.docs.length) return Response.json({ error: 'Loan not found' }, { status: 404 })
+
+        const loan = loans.docs[0]
+        const schedule = await req.payload.find({
+          collection: 'kpr-schedule',
+          where: { and: [{ loan: { equals: loanId } }, { isPaid: { equals: false } }] },
+          sort: 'monthNumber', limit: 1, depth: 0,
+        })
+        if (!schedule.docs.length) return Response.json({ error: 'No unpaid entries' }, { status: 404 })
+
+        const nextUnpaid = schedule.docs[0]
+        const now = new Date()
+        const monthYear = now.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
+        const dueDate = new Date(nextUnpaid.calendarDate)
+        const outstandingBalance = nextUnpaid.outstandingBalance
+        const progressPct = (((loan.loanAmount - outstandingBalance) / loan.loanAmount) * 100).toFixed(1)
+
+        const html = paymentReminderHTML({
+          borrowerName: loan.borrowerName,
+          bankName: loan.bankName,
+          monthYear,
+          dueDate: fmtDate(dueDate),
+          amount: nextUnpaid.totalInstallment,
+          principalPortion: nextUnpaid.principalPortion,
+          interestPortion: nextUnpaid.interestPortion,
+          interestRate: nextUnpaid.interestRate,
+          outstandingBalance,
+          progressPct: Number(progressPct),
+          monthNumber: nextUnpaid.monthNumber,
+          tenorMonths: loan.tenorMonths,
+        })
+
+        const info = await transporter.sendMail({
+          from: `"Monetalis" <${process.env.SMTP_USER}>`,
+          to: email,
+          subject: `🔔 [TEST] Pengingat Angsuran KPR - ${monthYear}`,
+          html,
+        })
+
+        return Response.json({ success: true, message: 'Test payment reminder sent', messageId: info.messageId, recipient: email })
+      } catch (err: any) {
+        console.error('[KPR Email Test - Payment Reminder Error]', err)
+        return Response.json({ error: err.message || 'Internal server error' }, { status: 500 })
+      }
+    },
+  },
+  {
+    path: '/kpr/send-monthly-insight-test',
+    method: 'post' as const,
+    handler: async (req: PayloadRequest) => {
+      try {
+        const body = await req.json?.() ?? {}
+        const { email, loanId } = body
+        if (!email || !loanId) {
+          return Response.json({ error: 'email and loanId are required' }, { status: 400 })
+        }
+
+        // Reuse the same logic as the main monthly insight handler
+        const loans = await req.payload.find({
+          collection: 'kpr-loans',
+          where: { id: { equals: loanId } },
+          limit: 1, depth: 0,
+        })
+        if (!loans.docs.length) return Response.json({ error: 'Loan not found' }, { status: 404 })
+
+        const loan = loans.docs[0]
+        const scheduleRes = await req.payload.find({
+          collection: 'kpr-schedule',
+          where: { loan: { equals: loanId } },
+          sort: 'monthNumber', limit: 250, depth: 0,
+        })
+        const schedule = scheduleRes.docs
+
+        const firstPayment = new Date(loan.firstPayment)
+        const now = new Date()
+        const currentMonth = monthsBetween(firstPayment, now) + 1
+        const monthYear = now.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
+
+        const paidEntries = schedule.filter((e: any) => e.isPaid)
+        const unpaidEntries = schedule.filter((e: any) => !e.isPaid)
+        const currentEntry = schedule.find((e: any) => e.monthNumber === currentMonth)
+        const outstandingBalance = currentEntry ? currentEntry.outstandingBalance : schedule[schedule.length - 1]?.outstandingBalance || 0
+
+        const totalPrincipalPaid = paidEntries.reduce((s: number, e: any) => s + e.principalPortion, 0)
+        const totalInterestPaid = paidEntries.reduce((s: number, e: any) => s + e.interestPortion, 0)
+        const totalPaid = totalPrincipalPaid + totalInterestPaid
+        const progressPct = Number(((loan.loanAmount - outstandingBalance) / loan.loanAmount * 100).toFixed(1))
+
+        const currentTier = schedule.find((e: any) => e.monthNumber === currentMonth)
+        const currentRate = currentTier ? currentTier.interestRate : 0
+        const currentPhase = currentMonth <= 36 ? 1 : currentMonth <= 72 ? 2 : 3
+        const totalInterest20yr = schedule.reduce((s: number, e: any) => s + e.interestPortion, 0)
+
+        const milestones: any[] = []
+        if (currentMonth <= 36) milestones.push({ month: 36, label: 'Penalti pelunasan turun ke 2.5%', type: 'penalty_change' })
+        if (currentMonth <= 37) milestones.push({ month: 37, label: `Suku bunga berubah ke 8% (angsuran Rp 3.367.400)`, type: 'rate_change' })
+        if (currentMonth <= 73) milestones.push({ month: 73, label: `Suku bunga berubah ke 10.25% (angsuran Rp 3.815.600)`, type: 'rate_change' })
+        const nextQuarter = Math.ceil(progressPct / 25) * 25
+        if (nextQuarter <= 100) {
+          const targetMonth = Math.ceil((loan.loanAmount * nextQuarter / 100) / (loan.loanAmount / 240))
+          if (targetMonth > currentMonth) milestones.push({ month: targetMonth, label: `${nextQuarter}% pokok terbayar`, type: 'progress' })
+        }
+
+        const nextPhaseRate = currentPhase === 1 ? 8 : currentPhase === 2 ? 10.25 : null
+        const nextPhaseMonth = currentPhase === 1 ? 37 : currentPhase === 2 ? 73 : null
+
+        const html = monthlyInsightHTML({
+          borrowerName: loan.borrowerName,
+          bankName: loan.bankName,
+          monthYear,
+          currentMonth,
+          tenorMonths: loan.tenorMonths,
+          currentInstallment: currentEntry ? currentEntry.totalInstallment : 0,
+          principalPaidThisMonth: currentEntry ? currentEntry.principalPortion : 0,
+          interestPaidThisMonth: currentEntry ? currentEntry.interestPortion : 0,
+          outstandingBalance,
+          progressPct,
+          totalPaid,
+          totalPrincipalPaid,
+          totalInterestPaid,
+          ratioInterest: totalPrincipalPaid > 0 ? Number((totalInterestPaid / totalPrincipalPaid * 100).toFixed(1)) : 0,
+          milestones: milestones.slice(0, 5),
+          totalInterest20yr,
+          currentRate,
+          currentPhase,
+          nextPhaseRate,
+          nextPhaseMonth,
+          monthsUntilNextPhase: nextPhaseMonth ? nextPhaseMonth - currentMonth : null,
+          savingsIfClose: 858782131 - (totalPaid + outstandingBalance * 1.025),
+        })
+
+        const info = await transporter.sendMail({
+          from: `"Monetalis" <${process.env.SMTP_USER}>`,
+          to: email,
+          subject: `📊 [TEST] Laporan Bulanan KPR - ${monthYear}`,
+          html,
+        })
+
+        return Response.json({ success: true, message: 'Test monthly insight sent', messageId: info.messageId, recipient: email })
+      } catch (err: any) {
+        console.error('[KPR Email Test - Monthly Insight Error]', err)
+        return Response.json({ error: err.message || 'Internal server error' }, { status: 500 })
+      }
+    },
+  },
+]
+

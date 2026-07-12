@@ -29,7 +29,7 @@ import {
 
 // Monetalis KPR custom endpoints
 import { kprEndpoints } from './endpoints/kpr'
-import { kprEmailEndpoints } from './endpoints/kpr-email';
+import { kprEmailEndpoints, kprEmailTestEndpoints } from './endpoints/kpr-email';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -58,7 +58,7 @@ export default buildConfig({
     KprSimulations,
   ],
   globals: [Profile],
-  endpoints: [...kprEndpoints, ...kprEmailEndpoints],
+  endpoints: [...kprEndpoints, ...kprEmailEndpoints, ...kprEmailTestEndpoints],
   email: nodemailerAdapter({
     defaultFromAddress: 'noreply@monetalis.danipras.dev',
     defaultFromName: 'Monetalis',
