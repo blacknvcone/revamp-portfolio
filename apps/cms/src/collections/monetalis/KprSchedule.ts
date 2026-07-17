@@ -2,6 +2,12 @@ import type { CollectionConfig } from 'payload';
 
 export const KprSchedule: CollectionConfig = {
   slug: 'kpr-schedule',
+  access: {
+    read: () => true,
+    create: () => true,
+    update: () => true,
+    delete: () => true,
+  },
   admin: {
     group: 'Monetalis',
     description: 'Jadwal angsuran 240 bulan (seeded from CSV)',

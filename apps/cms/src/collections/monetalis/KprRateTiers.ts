@@ -2,6 +2,12 @@ import type { CollectionConfig } from 'payload';
 
 export const KprRateTiers: CollectionConfig = {
   slug: 'kpr-rate-tiers',
+  access: {
+    read: () => true,
+    create: () => true,
+    update: () => true,
+    delete: () => true,
+  },
   admin: {
     group: 'Monetalis',
     description: 'Tier suku bunga berjenjang (stepped fixed rate)',

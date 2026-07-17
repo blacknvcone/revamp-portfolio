@@ -2,6 +2,12 @@ import type { CollectionConfig } from 'payload';
 
 export const KprLoans: CollectionConfig = {
   slug: 'kpr-loans',
+  access: {
+    read: () => true,
+    create: () => true,
+    update: () => true,
+    delete: () => true,
+  },
   admin: {
     useAsTitle: 'borrowerName',
     group: 'Monetalis',

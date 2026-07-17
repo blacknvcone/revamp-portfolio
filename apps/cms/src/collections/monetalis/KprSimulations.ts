@@ -2,6 +2,12 @@ import type { CollectionConfig } from 'payload';
 
 export const KprSimulations: CollectionConfig = {
   slug: 'kpr-simulations',
+  access: {
+    read: () => true,
+    create: () => true,
+    update: () => true,
+    delete: () => true,
+  },
   admin: {
     group: 'Monetalis',
     description: 'Skenario simulasi pembayaran yang tersimpan',

@@ -2,6 +2,12 @@ import type { CollectionConfig } from 'payload';
 
 export const KprReminders: CollectionConfig = {
   slug: 'kpr-reminders',
+  access: {
+    read: () => true,
+    create: () => true,
+    update: () => true,
+    delete: () => true,
+  },
   admin: {
     group: 'Monetalis',
     description: 'Konfigurasi email reminder angsuran',

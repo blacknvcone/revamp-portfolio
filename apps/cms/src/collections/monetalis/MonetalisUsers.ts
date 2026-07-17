@@ -6,6 +6,12 @@ export const MonetalisUsers: CollectionConfig = {
     useAPIKey: true,
     tokenExpiration: 60 * 60 * 24 * 7, // 7 days
   },
+  access: {
+    read: () => true,
+    create: () => true,
+    update: () => true,
+    delete: () => true,
+  },
   admin: {
     useAsTitle: 'email',
     group: 'Monetalis',

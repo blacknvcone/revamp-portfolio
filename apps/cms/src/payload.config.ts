@@ -24,6 +24,7 @@ import {
   KprExtraPayments,
   KprReminders,
   KprSimulations,
+  KprGoals,
   MonetalisUsers,
 } from './collections/monetalis';
 
@@ -56,6 +57,7 @@ export default buildConfig({
     KprExtraPayments,
     KprReminders,
     KprSimulations,
+    KprGoals,
   ],
   globals: [Profile],
   endpoints: [...kprEndpoints, ...kprEmailEndpoints, ...kprEmailTestEndpoints],

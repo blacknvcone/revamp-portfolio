@@ -1,7 +1,7 @@
 import type { CollectionConfig } from 'payload';
 
-export const KprExtraPayments: CollectionConfig = {
-  slug: 'kpr-extra-payments',
+export const KprGoals: CollectionConfig = {
+  slug: 'kpr-goals',
   access: {
     read: () => true,
     create: () => true,
@@ -10,7 +10,7 @@ export const KprExtraPayments: CollectionConfig = {
   },
   admin: {
     group: 'Monetalis',
-    description: 'Log pembayaran ekstra / pelunasan sebagian',
+    description: 'Konfigurasi target pelunasan KPR',
   },
   fields: [
     {
@@ -21,21 +21,24 @@ export const KprExtraPayments: CollectionConfig = {
       label: 'Pinjaman',
     },
     {
-      name: 'paymentDate',
+      name: 'targetDate',
       type: 'date',
       required: true,
-      label: 'Tanggal Pembayaran',
+      label: 'Tanggal Target Pelunasan',
     },
     {
-      name: 'amount',
+      name: 'monthlyIncome',
       type: 'number',
-      required: true,
-      min: 0,
-      label: 'Jumlah (Rp)',
+      label: 'Pemasukan Bulanan (Rp)',
     },
     {
-      name: 'note',
-      type: 'text',
+      name: 'monthlyExpenses',
+      type: 'number',
+      label: 'Pengeluaran Tetap Bulanan (Rp)',
+    },
+    {
+      name: 'notes',
+      type: 'textarea',
       label: 'Catatan',
     },
   ],
