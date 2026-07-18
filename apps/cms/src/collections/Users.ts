@@ -15,5 +15,10 @@ export const Users: CollectionConfig = {
       required: true,
       unique: true,
     },
+    {
+      name: 'name',
+      type: 'text',
+      label: 'Name',
+    },
   ],
 };

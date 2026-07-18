@@ -25,13 +25,13 @@ import {
   KprReminders,
   KprSimulations,
   KprGoals,
-  MonetalisUsers,
 } from './collections/monetalis';
 
 // Monetalis KPR custom endpoints
 import { kprEndpoints } from './endpoints/kpr'
 import { kprEmailEndpoints, kprEmailTestEndpoints } from './endpoints/kpr-email';
 import { logtoEndpoints } from './endpoints/logto-auth';
+import { logtoAdminEndpoints } from './endpoints/logto-auth-admin';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -51,7 +51,6 @@ export default buildConfig({
     Educations,
     Certifications,
     // Monetalis KPR
-    MonetalisUsers,
     KprLoans,
     KprRateTiers,
     KprSchedule,
@@ -61,7 +60,7 @@ export default buildConfig({
     KprGoals,
   ],
   globals: [Profile],
-  endpoints: [...kprEndpoints, ...kprEmailEndpoints, ...kprEmailTestEndpoints, ...logtoEndpoints],
+  endpoints: [...kprEndpoints, ...kprEmailEndpoints, ...kprEmailTestEndpoints, ...logtoEndpoints, ...logtoAdminEndpoints],
   email: nodemailerAdapter({
     defaultFromAddress: 'noreply@monetalis.danipras.dev',
     defaultFromName: 'Monetalis',
@@ -111,6 +110,7 @@ export default buildConfig({
     process.env.PAYLOAD_PUBLIC_SERVER_URL || 'http://localhost:3001',
     'https://monetalis.danipras.dev',
     'https://auth.danipras.dev',
+    'https://admin-auth.danipras.dev',
     'http://localhost:3000',
   ].filter(Boolean),
 });
