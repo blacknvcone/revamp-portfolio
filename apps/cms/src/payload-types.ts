@@ -82,6 +82,7 @@ export interface Config {
     'kpr-extra-payments': KprExtraPayment;
     'kpr-reminders': KprReminder;
     'kpr-simulations': KprSimulation;
+    'kpr-goals': KprGoal;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -103,6 +104,7 @@ export interface Config {
     'kpr-extra-payments': KprExtraPaymentsSelect<false> | KprExtraPaymentsSelect<true>;
     'kpr-reminders': KprRemindersSelect<false> | KprRemindersSelect<true>;
     'kpr-simulations': KprSimulationsSelect<false> | KprSimulationsSelect<true>;
+    'kpr-goals': KprGoalsSelect<false> | KprGoalsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -531,6 +533,22 @@ export interface KprSimulation {
   createdAt: string;
 }
 /**
+ * Konfigurasi target pelunasan KPR
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "kpr-goals".
+ */
+export interface KprGoal {
+  id: string;
+  loan: string | KprLoan;
+  targetDate: string;
+  monthlyIncome?: number | null;
+  monthlyExpenses?: number | null;
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -609,6 +627,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'kpr-simulations';
         value: string | KprSimulation;
+      } | null)
+    | ({
+        relationTo: 'kpr-goals';
+        value: string | KprGoal;
       } | null);
   globalSlug?: string | null;
   user:
@@ -910,6 +932,19 @@ export interface KprSimulationsSelect<T extends boolean = true> {
   scenarioType?: T;
   params?: T;
   results?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "kpr-goals_select".
+ */
+export interface KprGoalsSelect<T extends boolean = true> {
+  loan?: T;
+  targetDate?: T;
+  monthlyIncome?: T;
+  monthlyExpenses?: T;
+  notes?: T;
   updatedAt?: T;
   createdAt?: T;
 }

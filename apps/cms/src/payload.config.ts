@@ -31,6 +31,7 @@ import {
 // Monetalis KPR custom endpoints
 import { kprEndpoints } from './endpoints/kpr'
 import { kprEmailEndpoints, kprEmailTestEndpoints } from './endpoints/kpr-email';
+import { logtoEndpoints } from './endpoints/logto-auth';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -60,7 +61,7 @@ export default buildConfig({
     KprGoals,
   ],
   globals: [Profile],
-  endpoints: [...kprEndpoints, ...kprEmailEndpoints, ...kprEmailTestEndpoints],
+  endpoints: [...kprEndpoints, ...kprEmailEndpoints, ...kprEmailTestEndpoints, ...logtoEndpoints],
   email: nodemailerAdapter({
     defaultFromAddress: 'noreply@monetalis.danipras.dev',
     defaultFromName: 'Monetalis',
@@ -109,6 +110,7 @@ export default buildConfig({
   cors: [
     process.env.PAYLOAD_PUBLIC_SERVER_URL || 'http://localhost:3001',
     'https://monetalis.danipras.dev',
+    'https://auth.danipras.dev',
     'http://localhost:3000',
   ].filter(Boolean),
 });
