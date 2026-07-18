@@ -18,16 +18,21 @@ Monorepo containing a Next.js portfolio website and a shared Payload CMS backend
 │  Shared Payload CMS (apps/cms)                      │
 │  cms.danipras.dev                                   │
 │                                                     │
+│  Auth: Logto SSO (auth.danipras.dev)                │
+│  ┌─────────────────────────────────────────────────┐│
+│  │ /api/auth/logto      — Monetalis user SSO       ││
+│  │ /api/auth/logto-admin — CMS admin SSO           ││
+│  └─────────────────────────────────────────────────┘│
+│                                                     │
 │  Collections:                                       │
 │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐│
 │  │ Shared       │ │ Portfolio Web│ │ Monetalis    ││
-│  │ - Users      │ │ - Projects   │ │ - Users      ││
-│  │ - Media      │ │ - Experience │ │ - KprLoans   ││
-│  │              │ │ - Skills     │ │ - RateTiers  ││
-│  │              │ │ - Education  │ │ - Schedule   ││
-│  │              │ │ - Certif.    │ │ - ExtraPmts  ││
-│  │              │ │ - Profile(G) │ │ - Reminders  ││
-│  │              │ │              │ │ - Simulations││
+│  │ - Users      │ │ - Projects   │ │ - KprLoans   ││
+│  │ - Media      │ │ - Experience │ │ - RateTiers  ││
+│  │              │ │ - Skills     │ │ - Schedule   ││
+│  │              │ │ - Education  │ │ - ExtraPmts  ││
+│  │              │ │ - Certif.    │ │ - Reminders  ││
+│  │              │ │ - Profile(G) │ │ - Simulations││
 │  └──────────────┘ └──────────────┘ └──────────────┘│
 │                                                     │
 │  Custom Endpoints (Monetalis):                      │
@@ -61,13 +66,19 @@ Monorepo containing a Next.js portfolio website and a shared Payload CMS backend
 - `profile` — Global profile data
 
 ### Monetalis group
-- `monetalis-users` — Auth users (linked to 1 KPR loan, role: admin/viewer)
 - `kpr-loans` — KPR loan metadata (tab layout: Pinjaman, Dokumen, Aturan Penalti)
 - `kpr-rate-tiers` — Stepped fixed interest rate tiers
 - `kpr-schedule` — 240-month amortization schedule with payment tracking
 - `kpr-extra-payments` — Extra payment log
 - `kpr-reminders` — Email reminder config (day, types, multi-user)
 - `kpr-simulations` — Saved payment simulations
+
+> **Note:** Monetalis user management is now handled by Logto SSO.
+> Users are no longer stored in CMS MongoDB. See [logto-sso](../logto-sso/).
+
+### Auth Endpoints (Logto SSO)
+- `POST /api/auth/logto` — Monetalis user SSO (validates Logto ID token, returns Payload JWT)
+- `POST /api/auth/logto-admin` — CMS admin SSO (validates Logto token, auto-creates CMS user)
 
 ### Custom Endpoints (Monetalis)
 - `GET /api/kpr/status` — Current KPR status (computed)
@@ -120,7 +131,6 @@ revamp-portfolio/
 │           │       ├── KprExtraPayments.ts
 │           │       ├── KprReminders.ts
 │           │       ├── KprSimulations.ts
-│           │       ├── MonetalisUsers.ts
 │           │       └── index.ts
 │           ├── endpoints/
 │           │   ├── kpr.ts      # KPR custom endpoints
