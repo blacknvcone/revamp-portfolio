@@ -9,7 +9,6 @@ import { createRemoteJWKSet, jwtVerify } from 'jose';
 import jwt from 'jsonwebtoken';
 
 const LOGTO_ENDPOINT = process.env.LOGTO_ENDPOINT || 'https://auth.danipras.dev';
-const LOGTO_ADMIN_ENDPOINT = process.env.LOGTO_ADMIN_ENDPOINT || 'https://admin-auth.danipras.dev';
 const LOGTO_M2M_CLIENT_ID = process.env.LOGTO_M2M_CLIENT_ID || 'm-default';
 const LOGTO_M2M_CLIENT_SECRET = process.env.LOGTO_M2M_CLIENT_SECRET || '';
 
@@ -74,8 +73,8 @@ async function fetchLogtoUser(userId: string): Promise<{
 }> {
   const token = await getM2MToken();
 
-  // Fetch user details
-  const userResp = await fetch(`${LOGTO_ADMIN_ENDPOINT}/api/users/${userId}`, {
+  // Fetch user details — use same tenant as M2M token (default tenant)
+  const userResp = await fetch(`${LOGTO_ENDPOINT}/api/users/${userId}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
 
@@ -90,7 +89,7 @@ async function fetchLogtoUser(userId: string): Promise<{
   };
 
   // Fetch user roles
-  const rolesResp = await fetch(`${LOGTO_ADMIN_ENDPOINT}/api/users/${userId}/roles`, {
+  const rolesResp = await fetch(`${LOGTO_ENDPOINT}/api/users/${userId}/roles`, {
     headers: { Authorization: `Bearer ${token}` },
   });
 
