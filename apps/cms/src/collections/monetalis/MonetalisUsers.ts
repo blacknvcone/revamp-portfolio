@@ -75,7 +75,7 @@ export const MonetalisUsers: CollectionConfig = {
       method: 'get',
       handler: async (req) => {
         // Validate internal token (called by Bifrost)
-        const authHeader = req.headers.authorization || '';
+        const authHeader = req.headers.get('authorization') || '';
         const token = authHeader.replace('Bearer ', '');
         if (!token || token !== INTERNAL_AUTH_TOKEN) {
           return Response.json(
