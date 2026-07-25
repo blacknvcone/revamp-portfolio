@@ -11,6 +11,7 @@ const INTERNAL_AUTH_TOKEN = process.env.INTERNAL_AUTH_TOKEN || '';
 export const userLoanEndpoint: Endpoint = {
   path: '/monetalis-users/user-loan',
   method: 'get',
+  access: () => true,
   handler: async (req) => {
     // Validate internal token (called by Bifrost)
     const authHeader = req.headers.get('authorization') || '';
