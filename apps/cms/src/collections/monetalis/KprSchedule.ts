@@ -1,8 +1,11 @@
 import type { CollectionConfig } from 'payload';
+import { extractBifrostUser } from '@/middleware/bifrost-jwt';
 
 export const KprSchedule: CollectionConfig = {
   slug: 'kpr-schedule',
   access: {
+    // Phase 1: Open access (backward compatible with old auth)
+    // Phase 2: Enable JWT validation after SPA migration
     read: () => true,
     create: () => true,
     update: () => true,
