@@ -3,15 +3,14 @@ import type { Endpoint } from 'payload';
 const INTERNAL_AUTH_TOKEN = process.env.INTERNAL_AUTH_TOKEN || '';
 
 /**
- * GET /api/monetalis-users/user-loan?logtoSub=xxx
+ * GET /api/internal/user-loan?logtoSub=xxx
  *
  * Internal endpoint called by Bifrost during login.
  * Validates internal token, looks up user by logtoSub, returns loanId + role.
  */
 export const userLoanEndpoint: Endpoint = {
-  path: '/monetalis-users/user-loan',
+  path: '/internal/user-loan',
   method: 'get',
-  access: () => true,
   handler: async (req) => {
     // Validate internal token (called by Bifrost)
     const authHeader = req.headers.get('authorization') || '';
