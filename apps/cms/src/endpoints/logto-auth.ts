@@ -37,7 +37,8 @@ async function getM2MToken(): Promise<string> {
     return m2mTokenCache.token;
   }
 
-  const resp = await fetch(`${LOGTO_ADMIN_ENDPOINT}/oidc/token`, {
+  // M2M app is on the default tenant — token endpoint must match
+  const resp = await fetch(`${LOGTO_ENDPOINT}/oidc/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
