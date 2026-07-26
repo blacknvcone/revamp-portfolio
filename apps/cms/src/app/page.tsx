@@ -1,5 +1,8 @@
 import Link from 'next/link';
 
+// Force dynamic rendering so LOGTO_CLIENT_ID is read at runtime, not build time
+export const dynamic = 'force-dynamic';
+
 const LOGTO_ENDPOINT = process.env.LOGTO_ENDPOINT || 'https://auth.danipras.dev';
 const LOGTO_CLIENT_ID = process.env.LOGTO_CLIENT_ID || '';
 const CMS_URL = process.env.PAYLOAD_PUBLIC_SERVER_URL || 'https://cms.danipras.dev';
