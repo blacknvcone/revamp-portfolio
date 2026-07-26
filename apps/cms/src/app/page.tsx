@@ -29,7 +29,7 @@ export default function HomePage() {
         {/* Payload Logo */}
         <div style={{ marginBottom: '2rem' }}>
           <svg
-            viewBox="0 0 160 40"
+            viewBox="0 0 200 40"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
             style={{ height: 32, width: 'auto' }}

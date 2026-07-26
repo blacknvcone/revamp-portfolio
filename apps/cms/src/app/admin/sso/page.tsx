@@ -27,7 +27,8 @@ export default async function SSOCallbackPage() {
   const sessionCookie = cookieStore.get('session');
 
   if (!sessionCookie?.value) {
-    redirect('/admin?error=no_session');
+    // No Bifrost session — redirect to landing page, not /admin
+    redirect('/?error=no_session');
   }
 
   try {
@@ -45,7 +46,7 @@ export default async function SSOCallbackPage() {
       CMS_ACCESS_ROLES.includes(r),
     );
     if (!hasAccess) {
-      redirect('/admin?error=no_cms_access');
+      redirect('/?error=no_cms_access');
     }
 
     // 3. Find or create user via Payload local API
@@ -102,6 +103,6 @@ export default async function SSOCallbackPage() {
     redirect('/admin');
   } catch (err: any) {
     console.error('[SSO Callback Error]', err);
-    redirect('/admin?error=sso_failed');
+    redirect('/?error=sso_failed');
   }
 }
