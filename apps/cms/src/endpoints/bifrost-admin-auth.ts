@@ -2,11 +2,15 @@
 // Bifrost JWT Authentication for CMS Admin Users
 // Validates Bifrost JWT (which carries Logto roles)
 // and issues Payload CMS JWT for admin panel access.
+//
+// Roles are managed in the identity provider (Logto/Kratos).
+// CMS trusts the roles from the Bifrost JWT directly.
+// This endpoint just validates + issues a Payload JWT.
 // ============================================================
 
 import type { PayloadRequest } from 'payload';
 import { SignJWT } from 'jose';
-import { extractBifrostUser } from '@/middleware/bifrost-jwt';
+import { extractLogtoUser } from '@/middleware/logto-jwt';
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.PAYLOAD_SECRET || 'dev-secret-change-me',
@@ -18,18 +22,18 @@ const CMS_ACCESS_ROLES = ['cms-admin', 'cms-editor'];
 /**
  * POST /api/auth/bifrost-admin
  *
- * Headers: Authorization: Bifrost JWT as Bearer token
+ * Headers: Authorization: Bearer <Bifrost JWT>
  *
  * Flow:
  * 1. Validate Bifrost JWT (via JWKS)
- * 2. Check if user has CMS Logto roles
- * 3. Find or create user in Payload users collection
+ * 2. Check if user has CMS Logto roles (from JWT claims)
+ * 3. Look up or create access mapping in CMS
  * 4. Return Payload CMS JWT for admin panel
  */
 const bifrostAdminAuthHandler = async (req: PayloadRequest) => {
   try {
     // 1. Extract Bifrost user from Authorization header
-    const user = await extractBifrostUser(req as { headers: Headers });
+    const user = await extractLogtoUser(req as { headers: Headers });
     if (!user) {
       return Response.json(
         { error: 'Invalid or missing Bifrost token' },
@@ -37,11 +41,8 @@ const bifrostAdminAuthHandler = async (req: PayloadRequest) => {
       );
     }
 
-    // 2. Check if user has CMS Logto roles
-    // Note: old Bifrost (< v1.1.0) doesn't include logtoRoles in JWT.
-    // In that case, allow access if JWT is valid (user is authenticated).
-    // When logtoRoles is present, enforce the role check.
-    if (user.logtoRoles !== undefined) {
+    // 2. Check roles from Bifrost JWT (roles come from Logto, not CMS)
+    if (user.logtoRoles !== undefined && user.logtoRoles !== null) {
       const hasCmsAccess = user.logtoRoles.some((r: string) =>
         CMS_ACCESS_ROLES.includes(r),
       );
@@ -55,39 +56,30 @@ const bifrostAdminAuthHandler = async (req: PayloadRequest) => {
         );
       }
     }
-    const logtoRoles = user.logtoRoles;
 
-    // 3. Find or create user in Payload users collection
+    // 3. Look up access mapping in CMS (NO user creation)
     const existing = await req.payload.find({
       collection: 'users',
       where: { logtoSub: { equals: user.sub } },
       limit: 1,
     });
 
-    let cmsUser;
-    if (existing.docs.length > 0) {
-      cmsUser = existing.docs[0];
-    } else {
-      // Auto-create CMS user from Bifrost profile
-      const cmsRole =
-        logtoRoles?.includes('cms-admin') === true ? 'admin' : 'editor';
-
-      cmsUser = await req.payload.create({
-        collection: 'users',
-        data: {
-          logtoSub: user.sub,
-          email: user.email,
-          name: user.email,
-          cmsRole,
-          isActive: true,
-        } as any,
-      });
+    if (existing.docs.length === 0) {
+      return Response.json(
+        {
+          error:
+            'No CMS access mapping found. Contact admin to grant access.',
+        },
+        { status: 403 },
+      );
     }
+
+    const cmsUser = existing.docs[0];
 
     // 4. Generate Payload CMS JWT
     const token = await new SignJWT({
       id: cmsUser.id,
-      email: cmsUser.email,
+      email: user.email,
       collection: 'users',
     })
       .setProtectedHeader({ alg: 'HS256' })
@@ -99,10 +91,9 @@ const bifrostAdminAuthHandler = async (req: PayloadRequest) => {
       token,
       user: {
         id: cmsUser.id,
-        email: cmsUser.email,
+        email: user.email,
         name: (cmsUser as any).name,
-        cmsRole: (cmsUser as any).cmsRole,
-        logtoRoles,
+        logtoRoles: user.logtoRoles,
       },
     });
   } catch (err: any) {

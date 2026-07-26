@@ -13,12 +13,12 @@
  */
 
 import type { Access, Where, PayloadRequest, CollectionSlug } from 'payload'
-import { extractBifrostUser, type BifrostUser } from '@/middleware/bifrost-jwt'
+import { extractLogtoUser, type LogtoUser } from '@/middleware/logto-jwt'
 
 // ── Helper: extract user or return null ─────────────────────────────────────
 
-async function getUser(req: PayloadRequest): Promise<BifrostUser | null> {
-  return extractBifrostUser(req as { headers: Headers })
+async function getUser(req: PayloadRequest): Promise<LogtoUser | null> {
+  return extractLogtoUser(req as { headers: Headers })
 }
 
 /** Extract loanId from a document (handles both string and populated relationship). */

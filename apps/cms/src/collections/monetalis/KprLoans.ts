@@ -1,26 +1,26 @@
 import type { CollectionConfig } from 'payload';
-import { extractBifrostUser } from '@/middleware/bifrost-jwt';
+import { extractLogtoUser } from '@/middleware/logto-jwt';
 
 export const KprLoans: CollectionConfig = {
   slug: 'kpr-loans',
   access: {
     // Loan document: user can only see their own loan
     read: async ({ req }) => {
-      const user = await extractBifrostUser(req as { headers: Headers });
+      const user = await extractLogtoUser(req as { headers: Headers });
       if (!user) return false;
       return { id: { equals: user.loanId } } as import('payload').Where;
     },
     create: async ({ req }) => {
-      const user = await extractBifrostUser(req as { headers: Headers });
+      const user = await extractLogtoUser(req as { headers: Headers });
       return user?.role === 'admin';
     },
     update: async ({ req, id }) => {
-      const user = await extractBifrostUser(req as { headers: Headers });
+      const user = await extractLogtoUser(req as { headers: Headers });
       if (!user || user.role !== 'admin') return false;
       return id === user.loanId;
     },
     delete: async ({ req, id }) => {
-      const user = await extractBifrostUser(req as { headers: Headers });
+      const user = await extractLogtoUser(req as { headers: Headers });
       if (!user || user.role !== 'admin') return false;
       return id === user.loanId;
     },

@@ -6,12 +6,12 @@
  */
 
 import type { PayloadRequest } from 'payload'
-import { extractBifrostUser, type BifrostUser } from '@/middleware/bifrost-jwt'
+import { extractLogtoUser, type LogtoUser } from '@/middleware/logto-jwt'
 
 // ─── Auth helper ─────────────────────────────────────────────────────────────
 
 interface AuthResult {
-  user: BifrostUser
+  user: LogtoUser
 }
 
 /**
@@ -22,7 +22,7 @@ async function requireAuth(
   req: PayloadRequest,
   options?: { requireAdmin?: boolean; loanId?: string },
 ): Promise<AuthResult> {
-  const user = await extractBifrostUser(req as { headers: Headers })
+  const user = await extractLogtoUser(req as { headers: Headers })
   if (!user) {
     throw new Response(
       JSON.stringify({ error: 'Unauthorized', code: 'NO_BIFROST_TOKEN' }),

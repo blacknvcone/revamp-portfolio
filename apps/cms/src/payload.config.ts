@@ -113,7 +113,7 @@ export default buildConfig({
     'https://monetalis.danipras.dev',
     'https://auth.danipras.dev',
     'https://admin-auth.danipras.dev',
-    'https://bifrost.danipras.dev',
+
     'http://localhost:3000',
   ].filter(Boolean),
 });

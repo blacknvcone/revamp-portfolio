@@ -7,7 +7,7 @@
 
 import type { PayloadRequest } from 'payload'
 import nodemailer from 'nodemailer'
-import { extractBifrostUser } from '@/middleware/bifrost-jwt'
+import { extractLogtoUser } from '@/middleware/logto-jwt'
 
 // ─── SMTP Transporter ────────────────────────────────────────────────────────
 
@@ -588,7 +588,7 @@ const sendPaymentReminderHandler = async (req: PayloadRequest) => {
     }
 
     // Auth + admin + loan ownership check
-    const user = await extractBifrostUser(req as { headers: Headers })
+    const user = await extractLogtoUser(req as { headers: Headers })
     if (!user || user.role !== 'admin') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -756,7 +756,7 @@ const sendMonthlyInsightHandler = async (req: PayloadRequest) => {
     }
 
     // Auth + admin + loan ownership check
-    const user = await extractBifrostUser(req as { headers: Headers })
+    const user = await extractLogtoUser(req as { headers: Headers })
     if (!user || user.role !== 'admin') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 })
     }

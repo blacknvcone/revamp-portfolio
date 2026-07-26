@@ -1,9 +1,19 @@
 import Link from 'next/link';
 
-const BIFROST_URL = process.env.BIFROST_URL || 'https://bifrost.danipras.dev';
+const LOGTO_ENDPOINT = process.env.LOGTO_ENDPOINT || 'https://auth.danipras.dev';
+const LOGTO_CLIENT_ID = process.env.LOGTO_CLIENT_ID || '';
 const CMS_URL = process.env.PAYLOAD_PUBLIC_SERVER_URL || 'https://cms.danipras.dev';
 
 export default function HomePage() {
+  // Build Logto OIDC authorize URL
+  const logtoAuthUrl = `${LOGTO_ENDPOINT}/oidc/auth?` + new URLSearchParams({
+    client_id: LOGTO_CLIENT_ID,
+    redirect_uri: `${CMS_URL}/sso`,
+    response_type: 'code',
+    scope: 'openid profile email',
+    state: 'cms-sso',
+  }).toString();
+
   return (
     <div
       style={{
@@ -27,7 +37,7 @@ export default function HomePage() {
           textAlign: 'center',
         }}
       >
-        {/* Payload Logo — SVG icon + HTML text */}
+        {/* Payload Logo */}
         <div
           style={{
             marginBottom: '2rem',
@@ -75,9 +85,9 @@ export default function HomePage() {
           Shared backend for Portfolio Web &amp; Monetalis
         </p>
 
-        {/* SSO Login Button */}
+        {/* SSO Login Button — redirects directly to Logto */}
         <a
-          href={`${BIFROST_URL}/auth/login?redirect_to=${encodeURIComponent(`${CMS_URL}/sso`)}`}
+          href={logtoAuthUrl}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -165,20 +175,6 @@ export default function HomePage() {
             }}
           >
             Monetalis Dashboard
-          </a>
-          <span style={{ color: '#444' }}>·</span>
-          <a
-            href="https://bifrost.danipras.dev"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              color: '#888',
-              fontSize: '0.8125rem',
-              textDecoration: 'none',
-              transition: 'color 0.15s',
-            }}
-          >
-            Bifrost Auth
           </a>
         </div>
       </div>

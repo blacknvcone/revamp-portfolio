@@ -1,20 +1,79 @@
 import type { CollectionConfig } from 'payload';
 
+/**
+ * Access mapping table — NOT a user management collection.
+ *
+ * Payload 3.x requires `admin.user` to point to an auth collection
+ * for the admin panel to function. This collection satisfies that
+ * constraint while being minimal.
+ *
+ * Users and roles are managed entirely by Logto (identity provider).
+ * CMS trusts the Logto access token (Custom JWT with logtoRoles).
+ * This collection is just the link between logtoSub and Payload's
+ * internal user ID.
+ */
 export const Users: CollectionConfig = {
   slug: 'users',
   auth: {
     disableLocalStrategy: true,
-    useAPIKey: true,
+    strategies: [
+      {
+        name: 'logto-jwt',
+        authenticate: async ({ headers, payload }) => {
+          // Validate Logto access token from payload-token cookie
+          const cookieHeader = headers.get('cookie') || '';
+          const match = cookieHeader.match(/payload-token=([^;]+)/);
+          if (!match) {
+            return { user: null };
+          }
+
+          try {
+            const { jwtVerify } = await import('jose');
+
+            const secret = new TextEncoder().encode(
+              process.env.PAYLOAD_SECRET || 'dev-secret-change-me',
+            );
+
+            const { payload: tokenPayload } = await jwtVerify(match[1], secret);
+
+            const userId = tokenPayload.id as string;
+            if (!userId) {
+              return { user: null };
+            }
+
+            const result = await payload.find({
+              collection: 'users',
+              where: { id: { equals: userId } },
+              limit: 1,
+            });
+
+            if (result.docs.length === 0) {
+              return { user: null };
+            }
+
+            const user = result.docs[0];
+            return {
+              user: {
+                ...user,
+                collection: 'users',
+                _strategy: 'logto-jwt',
+              } as any,
+            };
+          } catch {
+            return { user: null };
+          }
+        },
+      },
+    ],
   },
   admin: {
     useAsTitle: 'logtoSub',
   },
   access: {
-    // Authenticated only — no public read
     read: ({ req: { user } }) => Boolean(user),
-    create: () => false, // Users created via SSO flow only
-    update: ({ req: { user } }) => (user as any)?.cmsRole === 'admin',
-    delete: ({ req: { user } }) => (user as any)?.cmsRole === 'admin',
+    create: () => false,
+    update: ({ req: { user } }) => Boolean(user),
+    delete: ({ req: { user } }) => Boolean(user),
   },
   fields: [
     {
@@ -24,13 +83,14 @@ export const Users: CollectionConfig = {
       unique: true,
       label: 'Logto User ID',
       admin: {
-        description: 'User ID dari Logto (sub claim). Primary identifier dari SSO.',
+        description: 'User ID dari identity provider. Link ke Payload internal ID.',
       },
     },
     {
       name: 'email',
       type: 'text',
       label: 'Email',
+      validate: () => true as const,
     },
     {
       name: 'name',
@@ -38,26 +98,12 @@ export const Users: CollectionConfig = {
       label: 'Name',
     },
     {
-      name: 'cmsRole',
-      type: 'select',
-      required: true,
-      defaultValue: 'editor',
-      label: 'CMS Role',
-      options: [
-        { label: 'Admin', value: 'admin' },
-        { label: 'Editor', value: 'editor' },
-      ],
-      admin: {
-        description: 'Admin bisa manage semua data dan user. Editor hanya bisa edit data.',
-      },
-    },
-    {
       name: 'isActive',
       type: 'checkbox',
       defaultValue: true,
       label: 'Active',
       admin: {
-        description: 'Nonaktifkan untuk memblokir akses tanpa menghapus user.',
+        description: 'Nonaktifkan untuk memblokir akses.',
       },
     },
   ],
