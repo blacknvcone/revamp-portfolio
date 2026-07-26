@@ -28,8 +28,8 @@ export const Users: CollectionConfig = {
     },
     {
       name: 'email',
-      type: 'email',
-      required: true,
+      type: 'text',
+      label: 'Email',
     },
     {
       name: 'name',
