@@ -1,26 +1,52 @@
 import type { CollectionConfig } from 'payload';
 import { resolveMonetalisUser } from '@/middleware/logto-jwt';
 
+/** Resolve user from Logto Bearer token or admin panel cookie */
+async function resolveUser(req: any): Promise<{ loanId: string; role: string } | null> {
+  // 1. Try Logto Bearer token
+  const resolved = await resolveMonetalisUser(req as { headers: Headers }, req.payload);
+  if (resolved) return resolved;
+
+  // 2. Fallback: admin panel auth
+  if (req.user) {
+    const logtoSub = (req.user as any).logtoSub;
+    if (!logtoSub) return null;
+    try {
+      const result = await req.payload.find({
+        collection: 'monetalis-users',
+        where: { logtoSub: { equals: logtoSub } },
+        limit: 1, depth: 0,
+      });
+      if (result.docs.length === 0) return null;
+      const mu = result.docs[0] as any;
+      if (!mu.isActive) return null;
+      const loanId = typeof mu.loan === 'object' ? mu.loan?.id : mu.loan;
+      if (!loanId) return null;
+      return { loanId, role: mu.role || 'viewer' };
+    } catch { return null; }
+  }
+  return null;
+}
+
 export const KprLoans: CollectionConfig = {
   slug: 'kpr-loans',
   access: {
-    // Loan document: user can only see their own loan
     read: async ({ req }) => {
-      const user = await resolveMonetalisUser(req as { headers: Headers }, req.payload);
+      const user = await resolveUser(req);
       if (!user) return false;
       return { id: { equals: user.loanId } } as import('payload').Where;
     },
     create: async ({ req }) => {
-      const user = await resolveMonetalisUser(req as { headers: Headers }, req.payload);
+      const user = await resolveUser(req);
       return user?.role === 'admin';
     },
     update: async ({ req, id }) => {
-      const user = await resolveMonetalisUser(req as { headers: Headers }, req.payload);
+      const user = await resolveUser(req);
       if (!user || user.role !== 'admin') return false;
       return id === user.loanId;
     },
     delete: async ({ req, id }) => {
-      const user = await resolveMonetalisUser(req as { headers: Headers }, req.payload);
+      const user = await resolveUser(req);
       if (!user || user.role !== 'admin') return false;
       return id === user.loanId;
     },

@@ -22,7 +22,45 @@ import { resolveMonetalisUser, type LogtoUser } from '@/middleware/logto-jwt'
 type ResolvedUser = LogtoUser & { loanId: string; role: string }
 
 async function getUser(req: PayloadRequest): Promise<ResolvedUser | null> {
-  return resolveMonetalisUser(req as { headers: Headers }, req.payload)
+  // 1. Try Logto Bearer token (API calls from Monetalis SPA)
+  const resolved = await resolveMonetalisUser(req as { headers: Headers }, req.payload)
+  if (resolved) return resolved
+
+  // 2. Fallback: admin panel auth via payload-token cookie
+  // req.user is set by Payload's auth strategy when logged into the admin panel
+  if (req.user) {
+    const adminUser = req.user as any
+    const logtoSub = adminUser.logtoSub
+    if (!logtoSub) return null
+
+    // Look up monetalis user by the admin user's logtoSub
+    try {
+      const result = await req.payload.find({
+        collection: 'monetalis-users',
+        where: { logtoSub: { equals: logtoSub } },
+        limit: 1,
+        depth: 0,
+      })
+      if (result.docs.length === 0) return null
+      const mu = result.docs[0] as any
+      if (!mu.isActive) return null
+
+      const loanId = typeof mu.loan === 'object' ? mu.loan?.id : mu.loan
+      if (!loanId) return null
+
+      return {
+        sub: logtoSub,
+        email: adminUser.email || '',
+        logtoRoles: [],
+        loanId,
+        role: mu.role || 'viewer',
+      }
+    } catch {
+      return null
+    }
+  }
+
+  return null
 }
 
 /** Extract loanId from a document (handles both string and populated relationship). */
