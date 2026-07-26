@@ -60,14 +60,19 @@ export default async function SSOCallbackPage() {
 
     const sub = payload.sub as string;
     const email = payload.email as string;
-    const logtoRoles = ((payload as any).logtoRoles as string[]) || [];
+    const logtoRoles: string[] | undefined = (payload as any).logtoRoles as string[] | undefined;
 
     // 3. Check CMS access roles
-    const hasAccess = logtoRoles.some((r: string) =>
-      CMS_ACCESS_ROLES.includes(r),
-    );
-    if (!hasAccess) {
-      redirect('/?error=no_cms_access');
+    // Note: old Bifrost (< v1.1.0) doesn't include logtoRoles in JWT.
+    // In that case, allow access if JWT is valid (user is authenticated).
+    // When logtoRoles is present, enforce the role check.
+    if (logtoRoles !== undefined) {
+      const hasAccess = logtoRoles.some((r: string) =>
+        CMS_ACCESS_ROLES.includes(r),
+      );
+      if (!hasAccess) {
+        redirect('/?error=no_cms_access');
+      }
     }
 
     // 4. Find or create user via Payload local API
@@ -86,7 +91,9 @@ export default async function SSOCallbackPage() {
     if (existing.docs.length > 0) {
       userId = existing.docs[0].id;
     } else {
-      const cmsRole = logtoRoles.includes('cms-admin') ? 'admin' : 'editor';
+      // Determine CMS role: if logtoRoles is present, derive from it
+      const cmsRole =
+        logtoRoles?.includes('cms-admin') === true ? 'admin' : 'editor';
       const newUser = await payloadClient.create({
         collection: 'users',
         data: {

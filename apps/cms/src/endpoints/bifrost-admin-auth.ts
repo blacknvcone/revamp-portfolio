@@ -38,18 +38,24 @@ const bifrostAdminAuthHandler = async (req: PayloadRequest) => {
     }
 
     // 2. Check if user has CMS Logto roles
-    const logtoRoles = user.logtoRoles || [];
-    const hasCmsAccess = logtoRoles.some((r: string) => CMS_ACCESS_ROLES.includes(r));
-
-    if (!hasCmsAccess) {
-      return Response.json(
-        {
-          error:
-            'Not authorized for CMS access. Required role: cms-admin or cms-editor.',
-        },
-        { status: 403 },
+    // Note: old Bifrost (< v1.1.0) doesn't include logtoRoles in JWT.
+    // In that case, allow access if JWT is valid (user is authenticated).
+    // When logtoRoles is present, enforce the role check.
+    if (user.logtoRoles !== undefined) {
+      const hasCmsAccess = user.logtoRoles.some((r: string) =>
+        CMS_ACCESS_ROLES.includes(r),
       );
+      if (!hasCmsAccess) {
+        return Response.json(
+          {
+            error:
+              'Not authorized for CMS access. Required role: cms-admin or cms-editor.',
+          },
+          { status: 403 },
+        );
+      }
     }
+    const logtoRoles = user.logtoRoles;
 
     // 3. Find or create user in Payload users collection
     const existing = await req.payload.find({
@@ -63,7 +69,8 @@ const bifrostAdminAuthHandler = async (req: PayloadRequest) => {
       cmsUser = existing.docs[0];
     } else {
       // Auto-create CMS user from Bifrost profile
-      const cmsRole = logtoRoles.includes('cms-admin') ? 'admin' : 'editor';
+      const cmsRole =
+        logtoRoles?.includes('cms-admin') === true ? 'admin' : 'editor';
 
       cmsUser = await req.payload.create({
         collection: 'users',
