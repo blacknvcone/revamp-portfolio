@@ -1,5 +1,5 @@
 // ============================================================
-// SSO Callback: handles Logto OIDC callback directly.
+// SSO Callback Route Handler: handles Logto OIDC callback.
 //
 // Flow:
 // 1. Landing page redirects to Logto /oidc/auth
@@ -7,12 +7,10 @@
 // 3. CMS exchanges code for tokens via Logto /oidc/token
 // 4. Validates ID token via Logto JWKS (has sub, email)
 // 5. Looks up access mapping in CMS users collection
-// 6. Signs Payload JWT and sets cookie → redirect to /admin
+// 6. Signs Payload JWT, sets cookie, redirects to /admin
 // ============================================================
 
-import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify, createRemoteJWKSet, SignJWT } from 'jose';
 
 const LOGTO_ENDPOINT =
@@ -63,22 +61,18 @@ async function exchangeCodeForTokens(code: string): Promise<{
   return res.json();
 }
 
-export default async function SSOCallbackPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ code?: string; state?: string; error?: string }>;
-}) {
-  const params = await searchParams;
-  const code = params.code;
-  const error = params.error;
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const code = searchParams.get('code');
+  const error = searchParams.get('error');
 
   if (error) {
     console.error('[SSO Callback] Logto returned error:', error);
-    redirect(`/?error=logto_error:${error}`);
+    return NextResponse.redirect(new URL(`/?error=logto_error:${error}`, CMS_URL));
   }
 
   if (!code) {
-    redirect('/?error=no_code');
+    return NextResponse.redirect(new URL('/?error=no_code', CMS_URL));
   }
 
   try {
@@ -96,7 +90,7 @@ export default async function SSOCallbackPage({
     const email = (idTokenPayload.email as string) || '';
 
     if (!sub) {
-      redirect('/?error=missing_sub');
+      return NextResponse.redirect(new URL('/?error=missing_sub', CMS_URL));
     }
 
     // 3. Look up access mapping in CMS (NO user creation)
@@ -112,7 +106,7 @@ export default async function SSOCallbackPage({
 
     if (existing.docs.length === 0) {
       console.warn('[SSO Callback] No CMS mapping for sub:', sub);
-      redirect('/?error=no_cms_mapping');
+      return NextResponse.redirect(new URL('/?error=no_cms_mapping', CMS_URL));
     }
 
     const cmsUser = existing.docs[0];
@@ -129,7 +123,7 @@ export default async function SSOCallbackPage({
       .setExpirationTime('7d')
       .sign(jwtSecret);
 
-    // 5. Set cookie via NextResponse and redirect to admin
+    // 5. Set cookie and redirect to admin
     const response = NextResponse.redirect(new URL('/admin', CMS_URL));
     response.cookies.set('payload-token', payloadToken, {
       httpOnly: true,
@@ -142,6 +136,6 @@ export default async function SSOCallbackPage({
     return response;
   } catch (err: any) {
     console.error('[SSO Callback Error]', err);
-    redirect('/?error=sso_failed');
+    return NextResponse.redirect(new URL('/?error=sso_failed', CMS_URL));
   }
 }
