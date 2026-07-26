@@ -1,7 +1,7 @@
 // ============================================================
-// SSO Callback: reads Bifrost session cookie, validates JWT,
-// finds/creates CMS user, sets Payload JWT cookie, redirects
-// to admin panel.
+// SSO Callback: reads Bifrost session cookie → calls
+// /auth/token to get raw JWT → validates → creates CMS user
+// → sets Payload JWT cookie → redirects to admin panel.
 // ============================================================
 
 import { redirect } from 'next/navigation';
@@ -11,6 +11,8 @@ import { jwtVerify, createRemoteJWKSet, SignJWT } from 'jose';
 const BIFROST_JWKS_URL =
   process.env.BIFROST_JWKS_URL ||
   'http://bifrost.bifrost.svc.cluster.local:3002/.well-known/jwks.json';
+const BIFROST_URL =
+  process.env.BIFROST_URL || 'https://bifrost.danipras.dev';
 const PAYLOAD_SECRET =
   process.env.PAYLOAD_SECRET || 'dev-secret-change-me';
 
@@ -31,8 +33,28 @@ export default async function SSOCallbackPage() {
   }
 
   try {
-    // 1. Validate Bifrost JWT
-    const { payload } = await jwtVerify(sessionCookie.value, getJWKS(), {
+    // 1. Call Bifrost /auth/token to get the raw JWT
+    const tokenRes = await fetch(`${BIFROST_URL}/auth/token`, {
+      headers: {
+        Cookie: `session=${sessionCookie.value}`,
+      },
+    });
+
+    if (!tokenRes.ok) {
+      console.error('[SSO Callback] Bifrost /auth/token failed:', tokenRes.status);
+      redirect('/?error=token_failed');
+    }
+
+    const tokenData = await tokenRes.json();
+    const bifrostJWT = tokenData.token;
+
+    if (!bifrostJWT) {
+      console.error('[SSO Callback] No token in Bifrost response');
+      redirect('/?error=token_missing');
+    }
+
+    // 2. Validate the Bifrost JWT
+    const { payload } = await jwtVerify(bifrostJWT, getJWKS(), {
       issuer: 'bifrost',
     });
 
@@ -40,7 +62,7 @@ export default async function SSOCallbackPage() {
     const email = payload.email as string;
     const logtoRoles = ((payload as any).logtoRoles as string[]) || [];
 
-    // 2. Check CMS access roles
+    // 3. Check CMS access roles
     const hasAccess = logtoRoles.some((r: string) =>
       CMS_ACCESS_ROLES.includes(r),
     );
@@ -48,7 +70,7 @@ export default async function SSOCallbackPage() {
       redirect('/?error=no_cms_access');
     }
 
-    // 3. Find or create user via Payload local API
+    // 4. Find or create user via Payload local API
     const { getPayload } = await import('payload');
     const config = (await import('@payload-config')).default;
     const payloadClient = await getPayload({ config });
@@ -78,7 +100,7 @@ export default async function SSOCallbackPage() {
       userId = newUser.id;
     }
 
-    // 4. Generate Payload JWT
+    // 5. Generate Payload JWT
     const jwtSecret = new TextEncoder().encode(PAYLOAD_SECRET);
     const token = await new SignJWT({
       id: userId,
@@ -90,7 +112,7 @@ export default async function SSOCallbackPage() {
       .setExpirationTime('7d')
       .sign(jwtSecret);
 
-    // 5. Set cookie and redirect to admin
+    // 6. Set cookie and redirect to admin
     cookieStore.set('payload-token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
