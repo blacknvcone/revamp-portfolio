@@ -75,7 +75,6 @@ export interface Config {
     skills: Skill;
     educations: Education;
     certifications: Certification;
-    'monetalis-users': MonetalisUser;
     'kpr-loans': KprLoan;
     'kpr-rate-tiers': KprRateTier;
     'kpr-schedule': KprSchedule;
@@ -83,6 +82,7 @@ export interface Config {
     'kpr-reminders': KprReminder;
     'kpr-simulations': KprSimulation;
     'kpr-goals': KprGoal;
+    'monetalis-users': MonetalisUser;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -97,7 +97,6 @@ export interface Config {
     skills: SkillsSelect<false> | SkillsSelect<true>;
     educations: EducationsSelect<false> | EducationsSelect<true>;
     certifications: CertificationsSelect<false> | CertificationsSelect<true>;
-    'monetalis-users': MonetalisUsersSelect<false> | MonetalisUsersSelect<true>;
     'kpr-loans': KprLoansSelect<false> | KprLoansSelect<true>;
     'kpr-rate-tiers': KprRateTiersSelect<false> | KprRateTiersSelect<true>;
     'kpr-schedule': KprScheduleSelect<false> | KprScheduleSelect<true>;
@@ -105,6 +104,7 @@ export interface Config {
     'kpr-reminders': KprRemindersSelect<false> | KprRemindersSelect<true>;
     'kpr-simulations': KprSimulationsSelect<false> | KprSimulationsSelect<true>;
     'kpr-goals': KprGoalsSelect<false> | KprGoalsSelect<true>;
+    'monetalis-users': MonetalisUsersSelect<false> | MonetalisUsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -172,6 +172,19 @@ export interface MonetalisUserAuthOperations {
  */
 export interface User {
   id: string;
+  /**
+   * User ID dari Logto (sub claim). Primary identifier dari SSO.
+   */
+  logtoSub: string;
+  name?: string | null;
+  /**
+   * Admin bisa manage semua data dan user. Editor hanya bisa edit data.
+   */
+  cmsRole: 'admin' | 'editor';
+  /**
+   * Nonaktifkan untuk memblokir akses tanpa menghapus user.
+   */
+  isActive?: boolean | null;
   updatedAt: string;
   createdAt: string;
   enableAPIKey?: boolean | null;
@@ -324,49 +337,6 @@ export interface Certification {
   credentialUrl?: string | null;
   updatedAt: string;
   createdAt: string;
-}
-/**
- * User yang bisa mengakses dashboard Monetalis
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "monetalis-users".
- */
-export interface MonetalisUser {
-  id: string;
-  name: string;
-  /**
-   * User hanya bisa mengakses data dari loan yang dipilih. 1 loan bisa dipakai banyak user.
-   */
-  loan: string | KprLoan;
-  /**
-   * Admin bisa manage data via CMS. Viewer hanya bisa lihat dashboard.
-   */
-  role: 'admin' | 'viewer';
-  /**
-   * Nonaktifkan untuk memblokir akses tanpa menghapus user
-   */
-  isActive?: boolean | null;
-  updatedAt: string;
-  createdAt: string;
-  enableAPIKey?: boolean | null;
-  apiKey?: string | null;
-  apiKeyIndex?: string | null;
-  email: string;
-  resetPasswordToken?: string | null;
-  resetPasswordExpiration?: string | null;
-  salt?: string | null;
-  hash?: string | null;
-  loginAttempts?: number | null;
-  lockUntil?: string | null;
-  sessions?:
-    | {
-        id: string;
-        createdAt?: string | null;
-        expiresAt: string;
-      }[]
-    | null;
-  password?: string | null;
-  collection: 'monetalis-users';
 }
 /**
  * Metadata pinjaman KPR
@@ -549,6 +519,53 @@ export interface KprGoal {
   createdAt: string;
 }
 /**
+ * User yang bisa mengakses dashboard Monetalis
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "monetalis-users".
+ */
+export interface MonetalisUser {
+  id: string;
+  /**
+   * User ID dari Logto (sub claim). Primary identifier.
+   */
+  logtoSub: string;
+  name: string;
+  /**
+   * User hanya bisa mengakses data dari loan yang dipilih. 1 loan bisa dipakai banyak user.
+   */
+  loan: string | KprLoan;
+  /**
+   * Admin bisa manage data via CMS. Viewer hanya bisa lihat dashboard.
+   */
+  role: 'admin' | 'viewer';
+  /**
+   * Nonaktifkan untuk memblokir akses tanpa menghapus user
+   */
+  isActive?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+  enableAPIKey?: boolean | null;
+  apiKey?: string | null;
+  apiKeyIndex?: string | null;
+  email: string;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiration?: string | null;
+  salt?: string | null;
+  hash?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
+  password?: string | null;
+  collection: 'monetalis-users';
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -601,10 +618,6 @@ export interface PayloadLockedDocument {
         value: string | Certification;
       } | null)
     | ({
-        relationTo: 'monetalis-users';
-        value: string | MonetalisUser;
-      } | null)
-    | ({
         relationTo: 'kpr-loans';
         value: string | KprLoan;
       } | null)
@@ -631,6 +644,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'kpr-goals';
         value: string | KprGoal;
+      } | null)
+    | ({
+        relationTo: 'monetalis-users';
+        value: string | MonetalisUser;
       } | null);
   globalSlug?: string | null;
   user:
@@ -689,6 +706,10 @@ export interface PayloadMigration {
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
+  logtoSub?: T;
+  name?: T;
+  cmsRole?: T;
+  isActive?: T;
   updatedAt?: T;
   createdAt?: T;
   enableAPIKey?: T;
@@ -808,35 +829,6 @@ export interface CertificationsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "monetalis-users_select".
- */
-export interface MonetalisUsersSelect<T extends boolean = true> {
-  name?: T;
-  loan?: T;
-  role?: T;
-  isActive?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  enableAPIKey?: T;
-  apiKey?: T;
-  apiKeyIndex?: T;
-  email?: T;
-  resetPasswordToken?: T;
-  resetPasswordExpiration?: T;
-  salt?: T;
-  hash?: T;
-  loginAttempts?: T;
-  lockUntil?: T;
-  sessions?:
-    | T
-    | {
-        id?: T;
-        createdAt?: T;
-        expiresAt?: T;
-      };
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "kpr-loans_select".
  */
 export interface KprLoansSelect<T extends boolean = true> {
@@ -947,6 +939,36 @@ export interface KprGoalsSelect<T extends boolean = true> {
   notes?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "monetalis-users_select".
+ */
+export interface MonetalisUsersSelect<T extends boolean = true> {
+  logtoSub?: T;
+  name?: T;
+  loan?: T;
+  role?: T;
+  isActive?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  enableAPIKey?: T;
+  apiKey?: T;
+  apiKeyIndex?: T;
+  email?: T;
+  resetPasswordToken?: T;
+  resetPasswordExpiration?: T;
+  salt?: T;
+  hash?: T;
+  loginAttempts?: T;
+  lockUntil?: T;
+  sessions?:
+    | T
+    | {
+        id?: T;
+        createdAt?: T;
+        expiresAt?: T;
+      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

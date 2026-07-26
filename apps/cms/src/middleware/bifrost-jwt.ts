@@ -22,6 +22,7 @@ export interface BifrostUser {
   email: string;
   loanId: string;
   role: 'admin' | 'viewer';
+  logtoRoles?: string[];
 }
 
 /**
@@ -37,6 +38,7 @@ export async function validateBifrostToken(token: string): Promise<BifrostUser> 
     email: payload.email as string,
     loanId: (payload as any).loanId as string,
     role: (payload as any).role as 'admin' | 'viewer',
+    logtoRoles: (payload as any).logtoRoles as string[] | undefined,
   };
 }
 

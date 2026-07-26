@@ -31,7 +31,7 @@ import {
 // Monetalis KPR custom endpoints
 import { kprEndpoints } from './endpoints/kpr'
 import { kprEmailEndpoints, kprEmailTestEndpoints } from './endpoints/kpr-email';
-import { logtoAdminEndpoints } from './endpoints/logto-auth-admin';
+import { bifrostAdminEndpoints } from './endpoints/bifrost-admin-auth';
 import { userLoanEndpoint } from './endpoints/user-loan';
 
 const filename = fileURLToPath(import.meta.url);
@@ -62,7 +62,7 @@ export default buildConfig({
     MonetalisUsers,
   ],
   globals: [Profile],
-  endpoints: [...kprEndpoints, ...kprEmailEndpoints, ...kprEmailTestEndpoints, ...logtoAdminEndpoints, userLoanEndpoint],
+  endpoints: [...kprEndpoints, ...kprEmailEndpoints, ...kprEmailTestEndpoints, ...bifrostAdminEndpoints, userLoanEndpoint],
   email: nodemailerAdapter({
     defaultFromAddress: 'noreply@monetalis.danipras.dev',
     defaultFromName: 'Monetalis',
