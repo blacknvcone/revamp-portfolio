@@ -27,7 +27,6 @@ export default async function SSOCallbackPage() {
   const sessionCookie = cookieStore.get('session');
 
   if (!sessionCookie?.value) {
-    // No Bifrost session — redirect to landing page, not /admin
     redirect('/?error=no_session');
   }
 
