@@ -60,9 +60,8 @@ jobs:
     steps:
       - name: Trigger rolling restart via webhook
         run: |
-          TAG="${{ needs.build-and-push.outputs.image-tag }}"
-          PAYLOAD=$(printf '{"ref":"%s","sha":"%s","tag":"%s","namespace":"cms-payload","deployment":"cms-payload","image":"%s/%s:%s"}' \
-            "$GITHUB_REF" "$GITHUB_SHA" "$TAG" "${{ env.REGISTRY }}" "${{ env.IMAGE_NAME }}" "$TAG")
+          PAYLOAD=$(printf '{"ref":"%s","sha":"%s","tag":"latest","namespace":"cms-payload","deployment":"cms-payload","image":"%s/%s:latest"}' \
+            "$GITHUB_REF" "$GITHUB_SHA" "${{ env.REGISTRY }}" "${{ env.IMAGE_NAME }}")
           SIG="sha256=$(printf '%s' "$PAYLOAD" | openssl dgst -sha256 -hmac "${{ secrets.WEBHOOK_SECRET }}" | awk '{print $2}')"
           curl -f -X POST https://deploy.danipras.dev/hooks/deploy \
             -H "Content-Type: application/json" \
