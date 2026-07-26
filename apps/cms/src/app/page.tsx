@@ -7,7 +7,8 @@ export default function HomePage() {
   return (
     <div
       style={{
-        minHeight: '100vh',
+        position: 'fixed',
+        inset: 0,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -15,6 +16,7 @@ export default function HomePage() {
         fontFamily:
           '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif',
         padding: '2rem',
+        margin: 0,
       }}
     >
       <div
