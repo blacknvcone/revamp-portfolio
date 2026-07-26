@@ -59,7 +59,8 @@ export default async function SSOCallbackPage() {
     });
 
     const sub = payload.sub as string;
-    const email = payload.email as string;
+    const rawEmail = payload.email as string | null | undefined;
+    const email = rawEmail && rawEmail.includes('@') ? rawEmail : `${sub}@cms.danipras.dev`;
     const logtoRoles: string[] | null | undefined = (payload as any).logtoRoles as string[] | null | undefined;
 
     // 3. Check CMS access roles
