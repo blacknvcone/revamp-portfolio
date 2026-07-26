@@ -1,108 +1,180 @@
 import Link from 'next/link';
 
 const BIFROST_URL = process.env.BIFROST_URL || 'https://bifrost.danipras.dev';
-const MONETALIS_URL = 'https://monetalis.danipras.dev';
+const CMS_URL = process.env.PAYLOAD_PUBLIC_SERVER_URL || 'https://cms.danipras.dev';
 
-export default async function HomePage() {
-  let healthStatus = 'unknown';
-  try {
-    const baseUrl =
-      process.env.PAYLOAD_PUBLIC_SERVER_URL || 'http://localhost:3001';
-    const res = await fetch(`${baseUrl}/api/health`, { cache: 'no-store' });
-    healthStatus = res.ok ? 'healthy' : 'degraded';
-  } catch {
-    healthStatus = 'unreachable';
-  }
-
+export default function HomePage() {
   return (
-    <main
+    <div
       style={{
         minHeight: '100vh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        backgroundColor: '#1a1a1a',
         fontFamily:
-          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        backgroundColor: '#fafafa',
-        color: '#1a1a1a',
+          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif',
+        padding: '2rem',
       }}
     >
-      <div style={{ textAlign: 'center', maxWidth: 560, padding: '2rem' }}>
-        <h1
-          style={{ fontSize: '2rem', fontWeight: 600, marginBottom: '0.5rem' }}
+      <div
+        style={{
+          width: '100%',
+          maxWidth: 400,
+          textAlign: 'center',
+        }}
+      >
+        {/* Payload Logo */}
+        <div style={{ marginBottom: '2rem' }}>
+          <svg
+            viewBox="0 0 160 40"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            style={{ height: 32, width: 'auto' }}
+          >
+            <path
+              d="M12.5 4L25 36H0L12.5 4Z"
+              fill="white"
+            />
+            <path
+              d="M33.5 4L46 36H21L33.5 4Z"
+              fill="white"
+              fillOpacity="0.5"
+            />
+            <text
+              x="56"
+              y="28"
+              fill="white"
+              fontSize="20"
+              fontWeight="600"
+              fontFamily="inherit"
+            >
+              Payload CMS
+            </text>
+          </svg>
+        </div>
+
+        {/* Subtitle */}
+        <p
+          style={{
+            color: '#999',
+            fontSize: '0.875rem',
+            marginBottom: '2rem',
+            lineHeight: 1.5,
+          }}
         >
-          Payload CMS
-        </h1>
-        <p style={{ color: '#666', marginBottom: '2rem' }}>
           Shared backend for Portfolio Web &amp; Monetalis
         </p>
 
-        <div
+        {/* SSO Login Button */}
+        <a
+          href={`${BIFROST_URL}/auth/login?redirect_to=${encodeURIComponent(`${CMS_URL}/admin/sso`)}`}
           style={{
-            display: 'inline-flex',
+            display: 'flex',
             alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.4rem 0.8rem',
-            borderRadius: 8,
-            backgroundColor:
-              healthStatus === 'healthy' ? '#e6f9ed' : '#fef3cd',
-            fontSize: '0.85rem',
-            marginBottom: '2rem',
+            justifyContent: 'center',
+            gap: '0.75rem',
+            width: '100%',
+            padding: '0.875rem 1.5rem',
+            marginBottom: '0.75rem',
+            backgroundColor: '#ffffff',
+            color: '#1a1a1a',
+            border: 'none',
+            borderRadius: '6px',
+            fontSize: '0.9375rem',
+            fontWeight: 500,
+            fontFamily: 'inherit',
+            cursor: 'pointer',
+            textDecoration: 'none',
+            transition: 'background-color 0.15s',
           }}
         >
-          <span
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              backgroundColor:
-                healthStatus === 'healthy' ? '#22c55e' : '#eab308',
-            }}
-          />
-          {healthStatus === 'healthy'
-            ? 'All systems operational'
-            : `Status: ${healthStatus}`}
-        </div>
+          {/* SSO icon */}
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M2 12h20"/>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          </svg>
+          Login with SSO
+        </a>
 
+        {/* Credential Login Button */}
+        <Link
+          href="/admin"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.75rem',
+            width: '100%',
+            padding: '0.875rem 1.5rem',
+            marginBottom: '1.5rem',
+            backgroundColor: 'transparent',
+            color: '#fff',
+            border: '1px solid #444',
+            borderRadius: '6px',
+            fontSize: '0.9375rem',
+            fontWeight: 500,
+            fontFamily: 'inherit',
+            cursor: 'pointer',
+            textDecoration: 'none',
+            transition: 'border-color 0.15s, background-color 0.15s',
+          }}
+        >
+          {/* Key icon */}
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+          </svg>
+          Login with Credentials
+        </Link>
+
+        {/* Divider */}
         <div
           style={{
             display: 'flex',
-            flexDirection: 'column',
-            gap: '0.75rem',
+            alignItems: 'center',
+            gap: '1rem',
+            marginBottom: '1.5rem',
           }}
         >
-          <Link href="/admin" style={linkStyle}>
-            Admin Panel →
-          </Link>
+          <div style={{ flex: 1, height: 1, backgroundColor: '#333' }} />
+          <span style={{ color: '#666', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            or
+          </span>
+          <div style={{ flex: 1, height: 1, backgroundColor: '#333' }} />
+        </div>
+
+        {/* Quick Links */}
+        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
           <a
-            href={MONETALIS_URL}
-            style={linkStyle}
+            href="https://monetalis.danipras.dev"
             target="_blank"
             rel="noopener noreferrer"
+            style={{
+              color: '#888',
+              fontSize: '0.8125rem',
+              textDecoration: 'none',
+              transition: 'color 0.15s',
+            }}
           >
-            Monetalis Dashboard →
+            Monetalis Dashboard
           </a>
+          <span style={{ color: '#444' }}>·</span>
           <a
-            href={`${BIFROST_URL}/auth/login?redirect_to=${encodeURIComponent('https://cms.danipras.dev/admin/sso')}`}
-            style={linkStyle}
+            href="https://bifrost.danipras.dev"
             target="_blank"
             rel="noopener noreferrer"
+            style={{
+              color: '#888',
+              fontSize: '0.8125rem',
+              textDecoration: 'none',
+              transition: 'color 0.15s',
+            }}
           >
-            Login via SSO →
+            Bifrost Auth
           </a>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
-
-const linkStyle: React.CSSProperties = {
-  display: 'block',
-  padding: '0.75rem 1.25rem',
-  border: '1px solid #e5e5e5',
-  borderRadius: 8,
-  textDecoration: 'none',
-  color: '#1a1a1a',
-  fontSize: '0.95rem',
-  transition: 'border-color 0.15s',
-};
