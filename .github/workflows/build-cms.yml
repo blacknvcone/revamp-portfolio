@@ -16,9 +16,13 @@ jobs:
       contents: read
       packages: write
     outputs:
-      image-tag: ${{ github.sha }}
+      image-tag: ${{ steps.tag.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Extract git tag
+        id: tag
+        run: echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -36,7 +40,6 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=sha,prefix=,suffix=
             type=ref,event=tag
 
       - name: Build and push
@@ -56,9 +59,10 @@ jobs:
     steps:
       - name: Trigger rolling restart via webhook
         run: |
-          TAG="${GITHUB_REF#refs/tags/}"
-          PAYLOAD=$(printf '{"ref":"%s","sha":"%s","tag":"%s","namespace":"cms-payload","deployment":"cms-payload"}' "$GITHUB_REF" "$GITHUB_SHA" "$TAG")
-          SIG="sha256=$(echo -n "$PAYLOAD" | openssl dgst -sha256 -hmac "${{ secrets.WEBHOOK_SECRET }}" | awk '{print $2}')"
+          TAG="${{ needs.build-and-push.outputs.image-tag }}"
+          PAYLOAD=$(printf '{"ref":"%s","sha":"%s","tag":"%s","namespace":"cms-payload","deployment":"cms-payload","image":"%s/%s:%s"}' \
+            "$GITHUB_REF" "$GITHUB_SHA" "$TAG" "${{ env.REGISTRY }}" "${{ env.IMAGE_NAME }}" "$TAG")
+          SIG="sha256=$(printf '%s' "$PAYLOAD" | openssl dgst -sha256 -hmac "${{ secrets.WEBHOOK_SECRET }}" | awk '{print $2}')"
           curl -f -X POST https://deploy.danipras.dev/hooks/deploy \
             -H "Content-Type: application/json" \
             -H "X-Hub-Signature-256: $SIG" \
