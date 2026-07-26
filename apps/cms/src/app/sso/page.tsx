@@ -51,6 +51,7 @@ async function exchangeCodeForTokens(code: string): Promise<{
       code,
       redirect_uri: `${CMS_URL}/sso`,
       client_id: LOGTO_CLIENT_ID,
+      resource: 'https://default.logto.app/api',
     }),
   });
 
