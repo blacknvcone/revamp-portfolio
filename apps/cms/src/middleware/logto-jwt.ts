@@ -10,7 +10,7 @@ import type { Payload } from 'payload';
 const LOGTO_JWKS_URL =
   process.env.LOGTO_JWKS_URL || 'https://auth.danipras.dev/oidc/jwks';
 const LOGTO_ISSUER =
-  process.env.LOGTO_ISSUER || 'https://auth.danipras.dev';
+  process.env.LOGTO_ISSUER || 'https://auth.danipras.dev/oidc';
 
 let jwks: ReturnType<typeof createRemoteJWKSet> | null = null;
 
