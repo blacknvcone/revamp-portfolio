@@ -12,6 +12,7 @@
 
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
 import { jwtVerify, createRemoteJWKSet, SignJWT } from 'jose';
 
 const LOGTO_ENDPOINT =
@@ -128,9 +129,9 @@ export default async function SSOCallbackPage({
       .setExpirationTime('7d')
       .sign(jwtSecret);
 
-    // 5. Set cookie and redirect to admin
-    const cookieStore = await cookies();
-    cookieStore.set('payload-token', payloadToken, {
+    // 5. Set cookie via NextResponse and redirect to admin
+    const response = NextResponse.redirect(new URL('/admin', CMS_URL));
+    response.cookies.set('payload-token', payloadToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       path: '/',
@@ -138,7 +139,7 @@ export default async function SSOCallbackPage({
       sameSite: 'lax',
     });
 
-    redirect('/admin');
+    return response;
   } catch (err: any) {
     console.error('[SSO Callback Error]', err);
     redirect('/?error=sso_failed');
