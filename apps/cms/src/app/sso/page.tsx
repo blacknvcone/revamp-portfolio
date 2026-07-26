@@ -2,6 +2,10 @@
 // SSO Callback: reads Bifrost session cookie → calls
 // /auth/token to get raw JWT → validates → creates CMS user
 // → sets Payload JWT cookie → redirects to admin panel.
+//
+// Auth flow: Bifrost authenticates via Logto. If the user exists
+// in Bifrost session, they're authorized. CMS creates/finds
+// user in the `users` collection automatically.
 // ============================================================
 
 import { redirect } from 'next/navigation';
@@ -21,8 +25,6 @@ function getJWKS() {
   if (!jwks) jwks = createRemoteJWKSet(new URL(BIFROST_JWKS_URL));
   return jwks;
 }
-
-const CMS_ACCESS_ROLES = ['cms-admin', 'cms-editor'];
 
 export default async function SSOCallbackPage() {
   const cookieStore = await cookies();
@@ -49,7 +51,6 @@ export default async function SSOCallbackPage() {
     const bifrostJWT = tokenData.token;
 
     if (!bifrostJWT) {
-      console.error('[SSO Callback] No token in Bifrost response');
       redirect('/?error=token_missing');
     }
 
@@ -59,24 +60,10 @@ export default async function SSOCallbackPage() {
     });
 
     const sub = payload.sub as string;
-    const rawEmail = payload.email as string | null | undefined;
-    const email = rawEmail && rawEmail.includes('@') ? rawEmail : rawEmail || sub;
+    const email = payload.email as string;
     const logtoRoles: string[] | null | undefined = (payload as any).logtoRoles as string[] | null | undefined;
 
-    // 3. Check CMS access roles
-    // Note: old Bifrost (< v1.1.0) doesn't include logtoRoles in JWT.
-    // In that case, allow access if JWT is valid (user is authenticated).
-    // When logtoRoles is present, enforce the role check.
-    if (logtoRoles != null) {
-      const hasAccess = logtoRoles.some((r: string) =>
-        CMS_ACCESS_ROLES.includes(r),
-      );
-      if (!hasAccess) {
-        redirect('/?error=no_cms_access');
-      }
-    }
-
-    // 4. Find or create user via Payload local API
+    // 3. Find or create user via Payload local API
     const { getPayload } = await import('payload');
     const config = (await import('@payload-config')).default;
     const payloadClient = await getPayload({ config });
@@ -92,7 +79,6 @@ export default async function SSOCallbackPage() {
     if (existing.docs.length > 0) {
       userId = existing.docs[0].id;
     } else {
-      // Determine CMS role: if logtoRoles is present, derive from it
       const cmsRole =
         logtoRoles?.includes('cms-admin') === true ? 'admin' : 'editor';
       const newUser = await payloadClient.create({
@@ -108,7 +94,7 @@ export default async function SSOCallbackPage() {
       userId = newUser.id;
     }
 
-    // 5. Generate Payload JWT
+    // 4. Generate Payload JWT
     const jwtSecret = new TextEncoder().encode(PAYLOAD_SECRET);
     const token = await new SignJWT({
       id: userId,
@@ -120,7 +106,7 @@ export default async function SSOCallbackPage() {
       .setExpirationTime('7d')
       .sign(jwtSecret);
 
-    // 6. Set cookie and redirect to admin
+    // 5. Set cookie and redirect to admin
     cookieStore.set('payload-token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
