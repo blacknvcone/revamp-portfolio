@@ -176,6 +176,7 @@ export interface User {
    * User ID dari Logto (sub claim). Primary identifier dari SSO.
    */
   logtoSub: string;
+  email?: string | null;
   name?: string | null;
   /**
    * Admin bisa manage semua data dan user. Editor hanya bisa edit data.
@@ -190,21 +191,6 @@ export interface User {
   enableAPIKey?: boolean | null;
   apiKey?: string | null;
   apiKeyIndex?: string | null;
-  email: string;
-  resetPasswordToken?: string | null;
-  resetPasswordExpiration?: string | null;
-  salt?: string | null;
-  hash?: string | null;
-  loginAttempts?: number | null;
-  lockUntil?: string | null;
-  sessions?:
-    | {
-        id: string;
-        createdAt?: string | null;
-        expiresAt: string;
-      }[]
-    | null;
-  password?: string | null;
   collection: 'users';
 }
 /**
@@ -707,6 +693,7 @@ export interface PayloadMigration {
  */
 export interface UsersSelect<T extends boolean = true> {
   logtoSub?: T;
+  email?: T;
   name?: T;
   cmsRole?: T;
   isActive?: T;
@@ -715,20 +702,6 @@ export interface UsersSelect<T extends boolean = true> {
   enableAPIKey?: T;
   apiKey?: T;
   apiKeyIndex?: T;
-  email?: T;
-  resetPasswordToken?: T;
-  resetPasswordExpiration?: T;
-  salt?: T;
-  hash?: T;
-  loginAttempts?: T;
-  lockUntil?: T;
-  sessions?:
-    | T
-    | {
-        id?: T;
-        createdAt?: T;
-        expiresAt?: T;
-      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
