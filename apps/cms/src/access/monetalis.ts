@@ -1,9 +1,11 @@
 /**
  * Shared Access Control for Monetalis Collections
  *
- * All Monetalis data is scoped to a loan. A Bifrost JWT carries
- * { sub, email, loanId, role } claims. Access rules:
+ * All Monetalis data is scoped to a loan. The Logto access token
+ * carries { sub, email, logtoRoles }. loanId and role are resolved
+ * from the monetalis-users collection (or Custom JWT claims).
  *
+ * Access rules:
  *   read    → authenticated, auto-filter by user's loanId
  *   create  → admin only, loan must match user's loanId
  *   update  → admin only, existing doc must belong to user's loan
@@ -13,12 +15,14 @@
  */
 
 import type { Access, Where, PayloadRequest, CollectionSlug } from 'payload'
-import { extractLogtoUser, type LogtoUser } from '@/middleware/logto-jwt'
+import { resolveMonetalisUser, type LogtoUser } from '@/middleware/logto-jwt'
 
-// ── Helper: extract user or return null ─────────────────────────────────────
+// ── Helper: extract full user context (with loanId/role) ────────────────────
 
-async function getUser(req: PayloadRequest): Promise<LogtoUser | null> {
-  return extractLogtoUser(req as { headers: Headers })
+type ResolvedUser = LogtoUser & { loanId: string; role: string }
+
+async function getUser(req: PayloadRequest): Promise<ResolvedUser | null> {
+  return resolveMonetalisUser(req as { headers: Headers }, req.payload)
 }
 
 /** Extract loanId from a document (handles both string and populated relationship). */

@@ -6,26 +6,27 @@
  */
 
 import type { PayloadRequest } from 'payload'
-import { extractLogtoUser, type LogtoUser } from '@/middleware/logto-jwt'
+import { resolveMonetalisUser, type LogtoUser } from '@/middleware/logto-jwt'
 
 // ─── Auth helper ─────────────────────────────────────────────────────────────
 
 interface AuthResult {
-  user: LogtoUser
+  user: LogtoUser & { loanId: string; role: string }
 }
 
 /**
- * Validate Bifrost JWT and verify loanId matches the user's loan.
+ * Validate Logto access token and resolve monetalis user context.
+ * Verifies loanId matches the user's loan if specified.
  * Returns the authenticated user or throws a 401/403 Response.
  */
 async function requireAuth(
   req: PayloadRequest,
   options?: { requireAdmin?: boolean; loanId?: string },
 ): Promise<AuthResult> {
-  const user = await extractLogtoUser(req as { headers: Headers })
+  const user = await resolveMonetalisUser(req as { headers: Headers }, req.payload)
   if (!user) {
     throw new Response(
-      JSON.stringify({ error: 'Unauthorized', code: 'NO_BIFROST_TOKEN' }),
+      JSON.stringify({ error: 'Unauthorized', code: 'NO_VALID_TOKEN_OR_USER' }),
       { status: 401, headers: { 'Content-Type': 'application/json' } },
     )
   }
