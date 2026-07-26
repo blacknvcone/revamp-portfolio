@@ -6,6 +6,46 @@
  */
 
 import type { PayloadRequest } from 'payload'
+import { extractBifrostUser, type BifrostUser } from '@/middleware/bifrost-jwt'
+
+// ─── Auth helper ─────────────────────────────────────────────────────────────
+
+interface AuthResult {
+  user: BifrostUser
+}
+
+/**
+ * Validate Bifrost JWT and verify loanId matches the user's loan.
+ * Returns the authenticated user or throws a 401/403 Response.
+ */
+async function requireAuth(
+  req: PayloadRequest,
+  options?: { requireAdmin?: boolean; loanId?: string },
+): Promise<AuthResult> {
+  const user = await extractBifrostUser(req as { headers: Headers })
+  if (!user) {
+    throw new Response(
+      JSON.stringify({ error: 'Unauthorized', code: 'NO_BIFROST_TOKEN' }),
+      { status: 401, headers: { 'Content-Type': 'application/json' } },
+    )
+  }
+
+  if (options?.requireAdmin && user.role !== 'admin') {
+    throw new Response(
+      JSON.stringify({ error: 'Forbidden', code: 'ADMIN_REQUIRED' }),
+      { status: 403, headers: { 'Content-Type': 'application/json' } },
+    )
+  }
+
+  if (options?.loanId && options.loanId !== user.loanId) {
+    throw new Response(
+      JSON.stringify({ error: 'Forbidden', code: 'LOAN_MISMATCH' }),
+      { status: 403, headers: { 'Content-Type': 'application/json' } },
+    )
+  }
+
+  return { user }
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -102,6 +142,9 @@ const statusHandler = async (req: PayloadRequest) => {
     if (!loanId) {
       return Response.json({ error: 'loanId query parameter is required' }, { status: 400 })
     }
+
+    // Auth + loan ownership check
+    await requireAuth(req, { loanId })
 
     // Fetch loan
     const loans = await req.payload.find({
@@ -228,6 +271,9 @@ const earlyPayoffHandler = async (req: PayloadRequest) => {
       )
     }
 
+    // Auth + admin + loan ownership check
+    await requireAuth(req, { requireAdmin: true, loanId })
+
     // Fetch loan
     const loans = await req.payload.find({
       collection: 'kpr-loans',
@@ -333,6 +379,9 @@ const extraPaymentHandler = async (req: PayloadRequest) => {
         { status: 400 },
       )
     }
+
+    // Auth + admin + loan ownership check
+    await requireAuth(req, { requireAdmin: true, loanId })
 
     // Fetch loan
     const loans = await req.payload.find({
@@ -445,6 +494,9 @@ const insightsHandler = async (req: PayloadRequest) => {
     if (!loanId) {
       return Response.json({ error: 'loanId query parameter is required' }, { status: 400 })
     }
+
+    // Auth + loan ownership check
+    await requireAuth(req, { loanId })
 
     // Fetch loan
     const loans = await req.payload.find({
@@ -622,6 +674,9 @@ const insightsHandler = async (req: PayloadRequest) => {
 
 const seedHandler = async (req: PayloadRequest) => {
   try {
+    // Admin-only operation
+    await requireAuth(req, { requireAdmin: true })
+
     // Check if loan already exists
     const existing = await req.payload.find({
       collection: 'kpr-loans',

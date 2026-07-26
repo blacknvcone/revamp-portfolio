@@ -1,9 +1,13 @@
 import type { CollectionConfig } from 'payload';
+import { usersAccess } from '@/access/monetalis';
 
 export const MonetalisUsers: CollectionConfig = {
   slug: 'monetalis-users',
   auth: {
     useAPIKey: true,
+  },
+  access: {
+    ...usersAccess,
   },
   admin: {
     useAsTitle: 'email',

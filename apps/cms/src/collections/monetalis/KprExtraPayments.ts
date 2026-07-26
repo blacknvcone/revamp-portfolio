@@ -1,12 +1,10 @@
 import type { CollectionConfig } from 'payload';
+import { loanScopedAccess } from '@/access/monetalis';
 
 export const KprExtraPayments: CollectionConfig = {
   slug: 'kpr-extra-payments',
   access: {
-    read: () => true,
-    create: () => true,
-    update: () => true,
-    delete: () => true,
+    ...loanScopedAccess('kpr-extra-payments'),
   },
   admin: {
     group: 'Monetalis',

@@ -1,12 +1,10 @@
 import type { CollectionConfig } from 'payload';
+import { loanScopedAccess } from '@/access/monetalis';
 
 export const KprReminders: CollectionConfig = {
   slug: 'kpr-reminders',
   access: {
-    read: () => true,
-    create: () => true,
-    update: () => true,
-    delete: () => true,
+    ...loanScopedAccess('kpr-reminders'),
   },
   admin: {
     group: 'Monetalis',

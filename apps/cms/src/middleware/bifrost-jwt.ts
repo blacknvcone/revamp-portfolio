@@ -43,8 +43,12 @@ export async function validateBifrostToken(token: string): Promise<BifrostUser> 
 /**
  * Extract and validate Bifrost user from request.
  * Returns null if no valid token found.
+ *
+ * Accepts any object with a `headers` property (Request, PayloadRequest, etc.)
  */
-export async function extractBifrostUser(req: Request): Promise<BifrostUser | null> {
+export async function extractBifrostUser(
+  req: { headers: Headers },
+): Promise<BifrostUser | null> {
   // Try Authorization header first
   const authHeader = req.headers.get('Authorization');
   if (authHeader?.startsWith('Bearer ')) {
@@ -56,7 +60,7 @@ export async function extractBifrostUser(req: Request): Promise<BifrostUser | nu
     }
   }
 
-  // Try session cookie
+  // Try session cookie (for Bifrost→CMS internal calls)
   const cookies = req.headers.get('Cookie');
   if (cookies) {
     const sessionMatch = cookies.match(/session=([^;]+)/);

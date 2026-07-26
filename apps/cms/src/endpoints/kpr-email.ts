@@ -7,6 +7,7 @@
 
 import type { PayloadRequest } from 'payload'
 import nodemailer from 'nodemailer'
+import { extractBifrostUser } from '@/middleware/bifrost-jwt'
 
 // ─── SMTP Transporter ────────────────────────────────────────────────────────
 
@@ -586,6 +587,15 @@ const sendPaymentReminderHandler = async (req: PayloadRequest) => {
       )
     }
 
+    // Auth + admin + loan ownership check
+    const user = await extractBifrostUser(req as { headers: Headers })
+    if (!user || user.role !== 'admin') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    if (user.loanId !== loanId) {
+      return Response.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     // Fetch reminder config
     const reminders = await req.payload.find({
       collection: 'kpr-reminders',
@@ -743,6 +753,15 @@ const sendMonthlyInsightHandler = async (req: PayloadRequest) => {
         { error: 'loanId and reminderId are required' },
         { status: 400 },
       )
+    }
+
+    // Auth + admin + loan ownership check
+    const user = await extractBifrostUser(req as { headers: Headers })
+    if (!user || user.role !== 'admin') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    if (user.loanId !== loanId) {
+      return Response.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // Fetch reminder config
