@@ -5,7 +5,7 @@
 // 1. Landing page redirects to Logto /oidc/auth
 // 2. Logto authenticates user → redirects to /sso?code=xxx&state=xxx
 // 3. CMS exchanges code for tokens via Logto /oidc/token
-// 4. Validates access token via Logto JWKS (contains logtoRoles)
+// 4. Validates ID token via Logto JWKS (has sub, email)
 // 5. Looks up access mapping in CMS users collection
 // 6. Signs Payload JWT and sets cookie → redirect to /admin
 // ============================================================
@@ -51,7 +51,6 @@ async function exchangeCodeForTokens(code: string): Promise<{
       code,
       redirect_uri: `${CMS_URL}/sso`,
       client_id: LOGTO_CLIENT_ID,
-      resource: 'https://default.logto.app/api',
     }),
   });
 
@@ -85,38 +84,21 @@ export default async function SSOCallbackPage({
     // 1. Exchange authorization code for tokens
     const tokens = await exchangeCodeForTokens(code);
 
-    // 2. Validate access token via Logto JWKS
-    //    The access token (with Custom JWT) contains logtoRoles
-    const { payload: accessTokenPayload } = await jwtVerify(
-      tokens.access_token,
+    // 2. Validate ID token via Logto JWKS
+    const { payload: idTokenPayload } = await jwtVerify(
+      tokens.id_token,
       getJWKS(),
-      { issuer: LOGTO_ENDPOINT },
+      { issuer: `${LOGTO_ENDPOINT}/oidc` },
     );
 
-    const sub = accessTokenPayload.sub as string;
-    const email =
-      (accessTokenPayload.email as string) ||
-      (accessTokenPayload as any).email ||
-      '';
-    const logtoRoles: string[] =
-      (accessTokenPayload as any).logtoRoles || [];
+    const sub = idTokenPayload.sub as string;
+    const email = (idTokenPayload.email as string) || '';
 
     if (!sub) {
       redirect('/?error=missing_sub');
     }
 
-    // 3. Check if user has CMS access roles
-    const CMS_ACCESS_ROLES = ['cms-admin', 'cms-editor'];
-    const hasCmsAccess = logtoRoles.some((r) =>
-      CMS_ACCESS_ROLES.includes(r),
-    );
-
-    if (!hasCmsAccess) {
-      console.warn('[SSO Callback] No CMS access for sub:', sub, 'roles:', logtoRoles);
-      redirect('/?error=no_cms_access');
-    }
-
-    // 4. Look up access mapping in CMS (NO user creation)
+    // 3. Look up access mapping in CMS (NO user creation)
     const { getPayload } = await import('payload');
     const config = (await import('@payload-config')).default;
     const payloadClient = await getPayload({ config });
@@ -134,7 +116,7 @@ export default async function SSOCallbackPage({
 
     const cmsUser = existing.docs[0];
 
-    // 5. Sign Payload JWT pointing to the mapping record
+    // 4. Sign Payload JWT pointing to the mapping record
     const jwtSecret = new TextEncoder().encode(PAYLOAD_SECRET);
     const payloadToken = await new SignJWT({
       id: cmsUser.id,
@@ -146,7 +128,7 @@ export default async function SSOCallbackPage({
       .setExpirationTime('7d')
       .sign(jwtSecret);
 
-    // 6. Set cookie and redirect to admin
+    // 5. Set cookie and redirect to admin
     const cookieStore = await cookies();
     cookieStore.set('payload-token', payloadToken, {
       httpOnly: true,

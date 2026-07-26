@@ -14,7 +14,6 @@ export default function HomePage() {
     redirect_uri: `${CMS_URL}/sso`,
     response_type: 'code',
     scope: 'openid profile email',
-    resource: 'https://default.logto.app/api',
     state: 'cms-sso',
   }).toString();
 
