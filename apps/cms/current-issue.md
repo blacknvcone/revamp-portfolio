@@ -1,41 +1,61 @@
 # Current Issue: SSO Login to CMS Admin Panel
 
 ## Status
-FIXED — Bifrost v1.1.3 (being deployed)
+DEBUGGING — Bifrost v1.2.0 deployed with Echo + slog
 
-## Root Cause
-Logto OSS v1.25.0 includes the user's `roles` claim in the **access token** (the JWT sent to resource servers), **NOT** in the **ID token** (the JWT sent to the client/Bifrost).
+## Problem
+When logging in via SSO from `cms.danipras.dev`, the SSO callback at `/sso` fails.
 
-Bifrost was extracting roles from the ID token:
-```go
-// OLD — ID token doesn't have "roles" claim in Logto
-claims, _ := uc.validateIDToken(tokens.IDToken)
-rolesRaw, _ := claims["roles"].([]interface{})
+### Observed Errors (in sequence)
+1. `no_session` — Bifrost session cookie not sent to `cms.danipras.dev` (fixed: added Domain to cookies)
+2. `no_cms_access` — `logtoRoles` null in JWT (fixed: decode access token instead of ID token)
+3. `Cannot read properties of null` — `logtoRoles` is `null` not `undefined` (fixed: `!= null` check)
+4. `The following field is invalid: Email` — Payload auth validates email format (fixed: `disableLocalStrategy: true`)
+5. `The following field is invalid: email` — Payload still validates email on auth collections (CURRENT)
+
+### Root Cause Investigation
+- **Bifrost JWT** has `"email": ""` and `"logtoRoles": null`
+- **Logto ID token** doesn't include `email` claim (email may not be verified in Logto)
+- **Logto access token** doesn't include `roles` claim in expected format
+- Debug logging added in v1.1.6, now using Echo + slog in v1.2.0
+
+### What to check next
+1. Wait for Bifrost v1.2.0 to deploy
+2. Logout from Bifrost, clear cookies, login again
+3. Check Bifrost logs: `kubectl logs -n bifrost deploy/bifrost --tail=30 | grep -i "debug\|claims"`
+4. The debug logs will show exact Logto ID token and access token claims
+5. Verify Logto user has email verified and cms-admin role assigned
+
+## Architecture (After Refactor)
+
+### Bifrost v1.2.0
+- **Framework**: Echo v4
+- **Logging**: log/slog (JSON handler, structured)
+- **Middleware**: Recover, RequestID, CORS
+- **Routes**: /auth/login, /auth/callback, /auth/logout, /auth/me, /auth/refresh, /auth/token, /.well-known/jwks.json
+
+### SSO Flow
+```
+Landing page → "Login with SSO"
+  → Bifrost /auth/login?redirect_to=cms.danipras.dev/sso
+  → Logto OIDC (PKCE)
+  → Bifrost /auth/callback
+    → exchange code for tokens
+    → decode ID token claims (email, sub)
+    → decode access token claims (roles)
+    → get user loan from CMS
+    → create Redis session
+    → set session cookie on .danipras.dev
+  → redirect to cms.danipras.dev/sso
+  → CMS /sso page
+    → read session cookie
+    → call Bifrost /auth/token → get raw JWT
+    → validate JWT
+    → find/create CMS user
+    → set payload-token cookie
+    → redirect to /admin
 ```
 
-This always returned an empty `logtoRoles` array, causing the CMS to reject login with `error=no_cms_access` — even though the user had `cms-admin` role assigned in Logto.
-
-## Fix
-Bifrost now extracts roles from the **access token** payload instead:
-```go
-// NEW — access token has "roles" claim
-accessClaims, _ := uc.decodeAccessToken(tokens.AccessToken)
-rolesRaw, _ := accessClaims["roles"].([]interface{})
-```
-
-### Files changed
-- `bifrost/internal/usecase/auth.go`
-
-### Tags
-- Bifrost: `v1.1.3` — extract roles from access token
-- CMS: `cms-v1.5.6` — allow login when logtoRoles absent from old JWT
-
-## What to verify after deploy
-1. Wait for Bifrost CI to deploy `v1.1.3`
-2. Login via SSO from `cms.danipras.dev`
-3. Check Bifrost logs for `logtoRoles` in JWT claims
-4. Verify admin panel loads
-
-## Notes
-- The `roles` scope is NOT needed in the Logto OIDC auth URL — roles are included in the access token by default
-- The Logto admin "Scopes" menu does NOT show a `roles` scope — this is normal for Logto OSS v1.25.0
+## Tags
+- Bifrost: v1.2.0 (Echo refactor)
+- CMS: cms-v1.5.10 (disableLocalStrategy + text email field)
