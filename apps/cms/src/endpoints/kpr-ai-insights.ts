@@ -1,7 +1,7 @@
 import type { PayloadRequest } from 'payload'
 import { resolveMonetalisUser } from '@/middleware/logto-jwt'
 import type { KprAiInsight } from '@/payload-types'
-import { buildInsightSystemPrompt, buildInsightUserPrompt, normalizeKprInsightInput, type AiInsightOutput } from '@/services/kpr-insights'
+import { normalizeKprInsightInput, type AiInsightOutput } from '@/services/kpr-insights'
 
 const PROMPT_VERSION_FALLBACK = 'v1'
 
@@ -58,7 +58,7 @@ Kembalikan JSON dengan struktur berikut:
 
 Jangan gunakan markdown di dalam field dan jangan mengulang seluruh data input.`
 
-export async function getProviderConfig(req: PayloadRequest): Promise<AiProviderConfig> {
+async function getProviderConfig(req: PayloadRequest): Promise<AiProviderConfig> {
   const configs = await req.payload.find({
     collection: 'kpr-ai-insight-configs',
     where: { isActive: { equals: true } },
@@ -69,8 +69,7 @@ export async function getProviderConfig(req: PayloadRequest): Promise<AiProvider
   const config = configs.docs[0] as unknown as Record<string, unknown> | undefined
   if (!config) throw new Error('AI provider configuration is not configured')
 
-  const required = ['endpoint', 'model', 'apiToken']
-  if (required.some((field) => typeof config[field] !== 'string' || !config[field])) {
+  if (['endpoint', 'model', 'apiToken'].some((field) => typeof config[field] !== 'string' || !config[field])) {
     throw new Error('AI provider configuration is incomplete')
   }
 
