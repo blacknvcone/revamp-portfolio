@@ -58,7 +58,7 @@ Kembalikan JSON dengan struktur berikut:
 
 Jangan gunakan markdown di dalam field dan jangan mengulang seluruh data input.`
 
-async function getProviderConfig(req: PayloadRequest): Promise<AiProviderConfig> {
+export async function getProviderConfig(req: PayloadRequest): Promise<AiProviderConfig> {
   const configs = await req.payload.find({
     collection: 'kpr-ai-insight-configs',
     where: { isActive: { equals: true } },

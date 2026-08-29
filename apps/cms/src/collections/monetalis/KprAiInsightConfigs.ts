@@ -47,9 +47,6 @@ export const KprAiInsightConfigs: CollectionConfig = {
       type: 'text',
       required: true,
       label: 'API Token',
-      access: {
-        read: () => false,
-      },
       admin: {
         description: 'Token provider. Disimpan di CMS dan tidak pernah dikembalikan ke API/frontend.',
       },
