@@ -587,13 +587,13 @@ export interface KprAiInsightConfig {
    */
   apiToken: string;
   /**
-   * Prompt instruksi utama untuk AI.
+   * Opsional. Jika kosong, CMS menggunakan system prompt default bawaan aplikasi.
    */
-  systemPrompt: string;
+  systemPrompt?: string | null;
   /**
-   * Gunakan placeholder {{analysisDate}} dan {{normalizedKprSnapshot}}.
+   * Opsional. Jika kosong, CMS menggunakan template default. Placeholder: {{analysisDate}} dan {{normalizedKprSnapshot}}.
    */
-  userPromptTemplate: string;
+  userPromptTemplate?: string | null;
   promptVersion: string;
   temperature: number;
   timeoutMs: number;

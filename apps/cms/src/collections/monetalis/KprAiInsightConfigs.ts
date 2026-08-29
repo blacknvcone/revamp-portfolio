@@ -1,6 +1,48 @@
 import type { CollectionConfig } from 'payload'
 import { aiInsightConfigAccess } from '@/access/monetalis'
 
+const DEFAULT_SYSTEM_PROMPT = `Anda adalah analis keuangan pribadi untuk dashboard KPR Monetalis.
+
+Tugas Anda adalah menganalisis snapshot data KPR yang diberikan dan menghasilkan ringkasan yang praktis, berbasis data, dan mudah dipahami dalam Bahasa Indonesia.
+
+Aturan wajib:
+1. Gunakan hanya data yang tersedia di input.
+2. Jangan mengarang angka, tanggal, rate, biaya, atau kondisi yang tidak tersedia.
+3. Bedakan fakta aktual, proyeksi, dan asumsi secara eksplisit.
+4. Jika data tidak cukup untuk menyimpulkan sesuatu, katakan bahwa data tidak cukup.
+5. Gunakan angka hanya jika tersedia atau dapat dihitung langsung dari input.
+6. Prioritaskan risiko kenaikan bunga, penalti pelunasan, arus kas, sisa pokok, dan peluang pembayaran ekstra.
+7. Jangan menjamin keuntungan investasi atau memberikan keputusan finansial absolut.
+8. Setiap rekomendasi harus memiliki alasan yang merujuk ke data input.
+9. Gunakan Bahasa Indonesia yang ringkas dan profesional.
+10. Kembalikan JSON valid sesuai schema yang diminta. Jangan menambahkan teks di luar JSON.
+11. Sertakan disclaimer bahwa output adalah analisis informasional dan perlu diverifikasi dengan bank atau penasihat keuangan.
+
+Maksimum output: 5 risks, 5 opportunities, 5 actions, dan 3 assumptions.`
+
+const DEFAULT_USER_PROMPT_TEMPLATE = `Analisis snapshot KPR berikut pada tanggal {{analysisDate}}.
+
+DATA KPR:
+{{normalizedKprSnapshot}}
+
+Kembalikan JSON dengan struktur berikut:
+{
+  "summary": "string, maksimal 500 karakter",
+  "financialPosition": "string, maksimal 800 karakter",
+  "risks": ["string"],
+  "opportunities": ["string"],
+  "actions": [{
+    "priority": "high | medium | low",
+    "title": "string",
+    "reason": "string",
+    "estimatedImpact": "string atau null"
+  }],
+  "assumptions": ["string"],
+  "disclaimer": "string"
+}
+
+Jangan gunakan markdown di dalam field dan jangan mengulang seluruh data input.`
+
 export const KprAiInsightConfigs: CollectionConfig = {
   slug: 'kpr-ai-insight-configs',
   access: aiInsightConfigAccess,
@@ -54,19 +96,19 @@ export const KprAiInsightConfigs: CollectionConfig = {
     {
       name: 'systemPrompt',
       type: 'textarea',
-      required: true,
       label: 'System Prompt',
+      defaultValue: DEFAULT_SYSTEM_PROMPT,
       admin: {
-        description: 'Prompt instruksi utama untuk AI.',
+        description: 'Opsional. Jika kosong, CMS menggunakan system prompt default bawaan aplikasi.',
       },
     },
     {
       name: 'userPromptTemplate',
       type: 'textarea',
-      required: true,
       label: 'User Prompt Template',
+      defaultValue: DEFAULT_USER_PROMPT_TEMPLATE,
       admin: {
-        description: 'Gunakan placeholder {{analysisDate}} dan {{normalizedKprSnapshot}}.',
+        description: 'Opsional. Jika kosong, CMS menggunakan template default. Placeholder: {{analysisDate}} dan {{normalizedKprSnapshot}}.',
       },
     },
     {

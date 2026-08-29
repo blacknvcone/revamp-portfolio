@@ -193,7 +193,8 @@ async function callSuprlusIntelligents(input: ReturnType<typeof normalizeKprInsi
       body: JSON.stringify({
         model: config.model,
         temperature: config.temperature,
-        response_format: { type: 'json_object' },
+        max_tokens: 2048,
+        stream: false,
         messages: [
           { role: 'system', content: config.systemPrompt },
           { role: 'user', content: renderUserPrompt(config.userPromptTemplate, input) },
