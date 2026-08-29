@@ -5,4 +5,6 @@ export { KprExtraPayments } from './KprExtraPayments';
 export { KprReminders } from './KprReminders';
 export { KprSimulations } from './KprSimulations';
 export { KprGoals } from './KprGoals';
+export { KprAiInsights } from './KprAiInsights';
+export { KprAiInsightConfigs } from './KprAiInsightConfigs';
 export { MonetalisUsers } from './MonetalisUsers';

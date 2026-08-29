@@ -69,6 +69,42 @@ function extractLoanId(doc: any): string | undefined {
   return typeof doc.loan === 'object' ? doc.loan.id : doc.loan
 }
 
+// ── Generated AI insight access ─────────────────────────────────────────────
+
+/** Generated AI records are read-only through generic REST. */
+export const aiInsightAccess = {
+  read: async ({ req }: { req: PayloadRequest }) => {
+    const user = await getUser(req)
+    if (!user) return false
+    return { loan: { equals: user.loanId } as Where } as Where
+  },
+  create: async ({ req }: { req: PayloadRequest }) => {
+    const user = await getUser(req)
+    return Boolean(user && user.role === 'admin')
+  },
+  update: async () => false,
+  delete: async () => false,
+}
+
+export const aiInsightConfigAccess = {
+  read: async ({ req }: { req: PayloadRequest }) => {
+    const user = await getUser(req)
+    return user?.role === 'admin'
+  },
+  create: async ({ req }: { req: PayloadRequest }) => {
+    const user = await getUser(req)
+    return user?.role === 'admin'
+  },
+  update: async ({ req }: { req: PayloadRequest }) => {
+    const user = await getUser(req)
+    return user?.role === 'admin'
+  },
+  delete: async ({ req }: { req: PayloadRequest }) => {
+    const user = await getUser(req)
+    return user?.role === 'admin'
+  },
+}
+
 // ── Loan-scoped collection access ───────────────────────────────────────────
 
 /** Auto-filter read queries to the user's loan only. */

@@ -82,6 +82,8 @@ export interface Config {
     'kpr-reminders': KprReminder;
     'kpr-simulations': KprSimulation;
     'kpr-goals': KprGoal;
+    'kpr-ai-insights': KprAiInsight;
+    'kpr-ai-insight-configs': KprAiInsightConfig;
     'monetalis-users': MonetalisUser;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -104,6 +106,8 @@ export interface Config {
     'kpr-reminders': KprRemindersSelect<false> | KprRemindersSelect<true>;
     'kpr-simulations': KprSimulationsSelect<false> | KprSimulationsSelect<true>;
     'kpr-goals': KprGoalsSelect<false> | KprGoalsSelect<true>;
+    'kpr-ai-insights': KprAiInsightsSelect<false> | KprAiInsightsSelect<true>;
+    'kpr-ai-insight-configs': KprAiInsightConfigsSelect<false> | KprAiInsightConfigsSelect<true>;
     'monetalis-users': MonetalisUsersSelect<false> | MonetalisUsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -173,24 +177,17 @@ export interface MonetalisUserAuthOperations {
 export interface User {
   id: string;
   /**
-   * User ID dari Logto (sub claim). Primary identifier dari SSO.
+   * User ID dari identity provider. Link ke Payload internal ID.
    */
   logtoSub: string;
   email?: string | null;
   name?: string | null;
   /**
-   * Admin bisa manage semua data dan user. Editor hanya bisa edit data.
-   */
-  cmsRole: 'admin' | 'editor';
-  /**
-   * Nonaktifkan untuk memblokir akses tanpa menghapus user.
+   * Nonaktifkan untuk memblokir akses.
    */
   isActive?: boolean | null;
   updatedAt: string;
   createdAt: string;
-  enableAPIKey?: boolean | null;
-  apiKey?: string | null;
-  apiKeyIndex?: string | null;
   collection: 'users';
 }
 /**
@@ -505,6 +502,110 @@ export interface KprGoal {
   createdAt: string;
 }
 /**
+ * AI-generated KPR insights yang tersimpan per loan
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "kpr-ai-insights".
+ */
+export interface KprAiInsight {
+  id: string;
+  loan: string | KprLoan;
+  generatedBy: string;
+  generatedAt: string;
+  promptVersion: string;
+  model?: string | null;
+  sourceSnapshot:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  summary: string;
+  financialPosition: string;
+  risks:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  opportunities:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  actions:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  assumptions:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  disclaimer: string;
+  status: 'completed' | 'failed';
+  errorMessage?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Konfigurasi provider AI dan prompt insight per loan
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "kpr-ai-insight-configs".
+ */
+export interface KprAiInsightConfig {
+  id: string;
+  name: string;
+  /**
+   * Satu konfigurasi aktif per loan. Insight selalu menggunakan active loan dari session.
+   */
+  loan: string | KprLoan;
+  provider: 'suprlus-intelligents';
+  /**
+   * URL endpoint server-side provider AI. Jangan gunakan URL frontend proxy.
+   */
+  endpoint: string;
+  model: string;
+  /**
+   * Token provider. Disimpan di CMS dan tidak pernah dikembalikan ke API/frontend.
+   */
+  apiToken: string;
+  /**
+   * Prompt instruksi utama untuk AI.
+   */
+  systemPrompt: string;
+  /**
+   * Gunakan placeholder {{analysisDate}} dan {{normalizedKprSnapshot}}.
+   */
+  userPromptTemplate: string;
+  promptVersion: string;
+  temperature: number;
+  timeoutMs: number;
+  isActive?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * User yang bisa mengakses dashboard Monetalis
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -632,6 +733,14 @@ export interface PayloadLockedDocument {
         value: string | KprGoal;
       } | null)
     | ({
+        relationTo: 'kpr-ai-insights';
+        value: string | KprAiInsight;
+      } | null)
+    | ({
+        relationTo: 'kpr-ai-insight-configs';
+        value: string | KprAiInsightConfig;
+      } | null)
+    | ({
         relationTo: 'monetalis-users';
         value: string | MonetalisUser;
       } | null);
@@ -695,13 +804,9 @@ export interface UsersSelect<T extends boolean = true> {
   logtoSub?: T;
   email?: T;
   name?: T;
-  cmsRole?: T;
   isActive?: T;
   updatedAt?: T;
   createdAt?: T;
-  enableAPIKey?: T;
-  apiKey?: T;
-  apiKeyIndex?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -910,6 +1015,49 @@ export interface KprGoalsSelect<T extends boolean = true> {
   monthlyIncome?: T;
   monthlyExpenses?: T;
   notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "kpr-ai-insights_select".
+ */
+export interface KprAiInsightsSelect<T extends boolean = true> {
+  loan?: T;
+  generatedBy?: T;
+  generatedAt?: T;
+  promptVersion?: T;
+  model?: T;
+  sourceSnapshot?: T;
+  summary?: T;
+  financialPosition?: T;
+  risks?: T;
+  opportunities?: T;
+  actions?: T;
+  assumptions?: T;
+  disclaimer?: T;
+  status?: T;
+  errorMessage?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "kpr-ai-insight-configs_select".
+ */
+export interface KprAiInsightConfigsSelect<T extends boolean = true> {
+  name?: T;
+  loan?: T;
+  provider?: T;
+  endpoint?: T;
+  model?: T;
+  apiToken?: T;
+  systemPrompt?: T;
+  userPromptTemplate?: T;
+  promptVersion?: T;
+  temperature?: T;
+  timeoutMs?: T;
+  isActive?: T;
   updatedAt?: T;
   createdAt?: T;
 }

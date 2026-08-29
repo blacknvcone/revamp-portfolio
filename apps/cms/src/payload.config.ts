@@ -25,6 +25,8 @@ import {
   KprReminders,
   KprSimulations,
   KprGoals,
+  KprAiInsights,
+  KprAiInsightConfigs,
   MonetalisUsers,
 } from './collections/monetalis';
 
@@ -34,6 +36,7 @@ import { kprEmailEndpoints, kprEmailTestEndpoints } from './endpoints/kpr-email'
 import { bifrostAdminEndpoints } from './endpoints/bifrost-admin-auth';
 import { userLoanEndpoint } from './endpoints/user-loan';
 import { logtoSessionEndpoint } from './endpoints/logto-session';
+import { aiInsightEndpoints } from './endpoints/kpr-ai-insights';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -60,10 +63,12 @@ export default buildConfig({
     KprReminders,
     KprSimulations,
     KprGoals,
+    KprAiInsights,
+    KprAiInsightConfigs,
     MonetalisUsers,
   ],
   globals: [Profile],
-  endpoints: [...kprEndpoints, ...kprEmailEndpoints, ...kprEmailTestEndpoints, ...bifrostAdminEndpoints, userLoanEndpoint, logtoSessionEndpoint],
+  endpoints: [...kprEndpoints, ...aiInsightEndpoints, ...kprEmailEndpoints, ...kprEmailTestEndpoints, ...bifrostAdminEndpoints, userLoanEndpoint, logtoSessionEndpoint],
   email: nodemailerAdapter({
     defaultFromAddress: 'noreply@monetalis.danipras.dev',
     defaultFromName: 'Monetalis',
