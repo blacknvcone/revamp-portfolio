@@ -568,7 +568,7 @@ export interface KprAiInsight {
   createdAt: string;
 }
 /**
- * Konfigurasi provider AI dan prompt insight per loan
+ * Konfigurasi provider AI dan prompt insight global
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "kpr-ai-insight-configs".
@@ -576,10 +576,6 @@ export interface KprAiInsight {
 export interface KprAiInsightConfig {
   id: string;
   name: string;
-  /**
-   * Satu konfigurasi aktif per loan. Insight selalu menggunakan active loan dari session.
-   */
-  loan: string | KprLoan;
   provider: 'suprlus-intelligents';
   /**
    * URL endpoint server-side provider AI. Jangan gunakan URL frontend proxy.
@@ -1047,7 +1043,6 @@ export interface KprAiInsightsSelect<T extends boolean = true> {
  */
 export interface KprAiInsightConfigsSelect<T extends boolean = true> {
   name?: T;
-  loan?: T;
   provider?: T;
   endpoint?: T;
   model?: T;

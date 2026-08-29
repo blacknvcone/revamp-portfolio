@@ -58,15 +58,10 @@ Kembalikan JSON dengan struktur berikut:
 
 Jangan gunakan markdown di dalam field dan jangan mengulang seluruh data input.`
 
-async function getProviderConfig(req: PayloadRequest, loanId: string): Promise<AiProviderConfig> {
+async function getProviderConfig(req: PayloadRequest): Promise<AiProviderConfig> {
   const configs = await req.payload.find({
     collection: 'kpr-ai-insight-configs',
-    where: {
-      and: [
-        { loan: { equals: loanId } },
-        { isActive: { equals: true } },
-      ],
-    },
+    where: { isActive: { equals: true } },
     limit: 1,
     depth: 0,
     overrideAccess: true,
@@ -242,7 +237,7 @@ const refreshInsightHandler = async (req: PayloadRequest) => {
     const user = await requireActiveSession(req)
     const input = await loadInsightInput(req, user.loanId)
     if (!input) return jsonError('Loan not found for active session', 'ACTIVE_LOAN_NOT_FOUND', 404)
-    const providerConfig = await getProviderConfig(req, user.loanId)
+    const providerConfig = await getProviderConfig(req)
     const generated = await callSuprlusIntelligents(input, providerConfig)
 
     const created = await req.payload.create({

@@ -1,5 +1,5 @@
 import type { CollectionConfig } from 'payload'
-import { aiInsightAccess, aiInsightConfigAccess } from '@/access/monetalis'
+import { aiInsightConfigAccess } from '@/access/monetalis'
 
 export const KprAiInsightConfigs: CollectionConfig = {
   slug: 'kpr-ai-insight-configs',
@@ -7,8 +7,8 @@ export const KprAiInsightConfigs: CollectionConfig = {
   admin: {
     group: 'Monetalis',
     useAsTitle: 'name',
-    description: 'Konfigurasi provider AI dan prompt insight per loan',
-    defaultColumns: ['name', 'loan', 'provider', 'model', 'isActive'],
+    description: 'Konfigurasi provider AI dan prompt insight global',
+    defaultColumns: ['name', 'provider', 'model', 'isActive'],
   },
   fields: [
     {
@@ -16,17 +16,6 @@ export const KprAiInsightConfigs: CollectionConfig = {
       type: 'text',
       required: true,
       label: 'Nama Konfigurasi',
-    },
-    {
-      name: 'loan',
-      type: 'relationship',
-      relationTo: 'kpr-loans',
-      required: true,
-      unique: true,
-      label: 'Pinjaman',
-      admin: {
-        description: 'Satu konfigurasi aktif per loan. Insight selalu menggunakan active loan dari session.',
-      },
     },
     {
       name: 'provider',
